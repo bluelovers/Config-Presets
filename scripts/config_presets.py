@@ -307,6 +307,15 @@ def load_img2img_custom_tracked_component_ids() -> list[str]:
 #img2img_batch_output_dir
 #img2img_batch_inpaint_mask_dir
 
+# Soft Inpainting:
+#soft_inpainting_enabled-checkbox
+#mask_blend_power
+#mask_blend_scale
+#inpaint_detail_preservation
+#composite_mask_influence
+#composite_difference_threshold
+#composite_difference_contrast
+
 # Script dropdown:
 #script_list
 
