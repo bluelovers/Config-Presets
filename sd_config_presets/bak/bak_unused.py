@@ -9,5 +9,5 @@ def _replace_text_in_file(old: str, new: str, file_path: str):  # pyright: ignor
         content = file.read()
 
     with open(file_path, "w") as file:
-        file.write(content.replace(old, new))  # pyright: ignore[reportUnusedCallResult]
+        file.write(content.replace(old, new))
 

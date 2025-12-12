@@ -23,7 +23,7 @@ def open_file_in_system_app(file_path: str) -> None:
     if system() == "Windows":
         startfile(file_path)
     elif system() == "Darwin":
-        Popen(["open", file_path])  # pyright: ignore[reportUnusedCallResult]
+        Popen(["open", file_path])
     else:
-        Popen(["xdg-open", file_path])  # pyright: ignore[reportUnusedCallResult]
+        Popen(["xdg-open", file_path])
 

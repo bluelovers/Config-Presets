@@ -184,18 +184,18 @@ def _write_text_to_file(text: str, file_path: str):
         使用写入模式('w')，这将覆盖现有文件。
     """
     with open(file_path, "w") as file:
-        file.write(text)  # pyright: ignore[reportUnusedCallResult]
+        file.write(text)
 
-def write_json_to_file(json_data: Any, file_path: str):  # pyright: ignore[reportExplicitAny, reportAny]
+def write_json_to_file(json_data: Any, file_path: str):
     """
     Write JSON data to a file with proper indentation.
     
     将JSON数据以适当的缩进写入文件。
     """
     with open(file_path, "w") as file:
-        file.write(json.dumps(json_data, indent=2))  # pyright: ignore[reportUnusedCallResult]
+        file.write(json.dumps(json_data, indent=2))
 
-def load_config_file(file_path: str, type_name: EnumTypeName, default_presets: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:  # pyright: ignore[reportExplicitAny]
+def load_config_file(file_path: str, type_name: EnumTypeName, default_presets: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
     """
     Generic function to load configuration presets from JSON file.
     
@@ -244,3 +244,28 @@ def load_config_file(file_path: str, type_name: EnumTypeName, default_presets: d
 
     return default_presets
 
+def dict_synonyms(d: dict[str, Any], lsyn: list[tuple[str, str]] ):
+    """
+    Adds synonyms to keys in a given dictionary.
+    
+    lsyn = [(key1,key2..), (key3,key4..) ...]
+    Key2 will receive the value of key1 if it exists and vice versa.
+    If both key3 and key4 exist, then they'll keep their old values.
+    If two keys have values and a third doesn't, then it will be assigned to one of the two randomly.
+    One liner partly written by a chatbot.
+    
+    为给定字典中的键添加同义词。
+    
+    lsyn = [(key1,key2..), (key3,key4..) ...]
+    如果key1存在，key2将接收key1的值，反之亦然。
+    如果key3和key4都存在，它们将保持旧值。
+    如果两个键有值而第三个没有，那么它将被随机分配给其中一个。
+    单行代码部分由聊天机器人编写。
+    """
+    d2: dict[str, Any] = {key: d[existing_key] # Get existing value.
+          for syn in lsyn # Loop over synonyms.
+          for key in syn # Loop over each key in the set.
+          for existing_key in syn  # Find existing key to copy from.
+          if existing_key in d and key not in d} # Only if the key doesn't exist already.
+    d2.update(d) # Add back all existing keys.
+    return d2

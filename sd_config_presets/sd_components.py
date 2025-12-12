@@ -42,7 +42,7 @@ def save_config(config_presets: dict[str, Any], component_map: dict[str, Any], c
             # 如果在文本框中没有输入标签，则不执行任何操作
             return gr.Dropdown.update(), ""  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
 
-        new_setting_map: dict[str, Any] = {}    # dict[str, Any]    {"txt2img_steps": 10, ...}  # pyright: ignore[reportExplicitAny]
+        new_setting_map: dict[str, Any] = {}    # dict[str, Any]    {"txt2img_steps": 10, ...}
         # 新设置映射字典 - 字符串到任意类型的映射，格式如：{"txt2img_steps": 10, ...}
 
         #log_debug(f"component_map={component_map}")

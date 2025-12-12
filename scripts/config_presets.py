@@ -6,7 +6,7 @@ import modules.scripts as scripts  # pyright: ignore[reportMissingImports]
 import gradio as gr  # pyright: ignore[reportMissingImports]
 
 from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImports, reportUnknownVariableType]
-from sd_config_presets.config_components import load_custom_tracked_component_ids, EnumTypeName, log, log_error, log_critical_error, load_config_file, write_json_to_file
+from sd_config_presets.config_components import dict_synonyms, load_custom_tracked_component_ids, EnumTypeName, log, log_error, log_critical_error, load_config_file, write_json_to_file
 from sd_config_presets.sd_components import save_config, get_config_preset_dropdown_choices
 from sd_config_presets.utils import open_file_in_system_app
 
@@ -758,33 +758,6 @@ def load_img2img_config_file():
     return load_config_file(CONFIG_IMG2IMG_FILE_NAME, type_name, img2img_config_presets)
 
 
-def dict_synonyms(d, lsyn):
-    """
-    Adds synonyms to keys in a given dictionary.
-    
-    lsyn = [(key1,key2..), (key3,key4..) ...]
-    Key2 will receive the value of key1 if it exists and vice versa.
-    If both key3 and key4 exist, then they'll keep their old values.
-    If two keys have values and a third doesn't, then it will be assigned to one of the two randomly.
-    One liner partly written by a chatbot.
-    
-    为给定字典中的键添加同义词。
-    
-    lsyn = [(key1,key2..), (key3,key4..) ...]
-    如果key1存在，key2将接收key1的值，反之亦然。
-    如果key3和key4都存在，它们将保持旧值。
-    如果两个键有值而第三个没有，那么它将被随机分配给其中一个。
-    单行代码部分由聊天机器人编写。
-    """
-    d2 = {key: d[existing_key] # Get existing value.
-          for syn in lsyn # Loop over synonyms.
-          for key in syn # Loop over each key in the set.
-          for existing_key in syn  # Find existing key to copy from.
-          if existing_key in d and key not in d} # Only if the key doesn't exist already.
-    d2.update(d) # Add back all existing keys.
-    return d2
-
-
 class Script(scripts.Script):
     """
     Main Script class for the Config-Presets extension.
@@ -922,7 +895,7 @@ class Script(scripts.Script):
 
         # Synonymous IDs are interchangeable at load time.
         # 同义词ID在加载时可以互换。
-        self.synonym_ids = [
+        self.synonym_ids: list[tuple[str, str]] = [
             ("txt2img_hires_steps", "txt2img_steps_alt"),                       # Vlad's SD.Next Hires fix steps
             ("txt2img_enable_hr", "txt2img_show_second_pass"),                  # Vlad's SD.Next Hires fix enable
             ("controlnet_control_mod_radio", "controlnet_control_mode_radio"),  # ControlNet component renamed on 5/26/2023 due to typo.
