@@ -223,7 +223,7 @@ def load_config_file(file_path: str, type_name: EnumTypeName, default_presets: d
     """
     try:
         with open(file_path) as file:
-            return json.load(file)  # pyright: ignore[reportAny]
+            return json.load(file)
 
     except (FileNotFoundError, JSONDecodeError) as e:
         # JSONDecodeError can happen and prevent Web UI from loading if the json file is malformed
@@ -238,7 +238,7 @@ def load_config_file(file_path: str, type_name: EnumTypeName, default_presets: d
             # File corrupted - log error and return error preset
             # 文件损坏 - 记录错误并返回错误预设
             log_error(f"failed to load {type_name} config file at {file_path}")
-            log_error(f"at line {e.lineno}, col {e.colno}: {e.msg}")  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
+            log_error(f"at line {e.lineno}, col {e.colno}: {e.msg}")
             log_error(f"Loading default presets until you fix the syntax error, or you could delete the file and let it be recreated with default values.")
             return {"ERROR loading your config file! See console for details": {}}
 

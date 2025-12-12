@@ -1,5 +1,5 @@
 
-def _replace_text_in_file(old: str, new: str, file_path: str):  # pyright: ignore[reportUnusedFunction]
+def _replace_text_in_file(old: str, new: str, file_path: str):
     """
     Replace text in a file with new text.
     

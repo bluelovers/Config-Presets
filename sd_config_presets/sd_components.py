@@ -1,7 +1,7 @@
 
 from typing import Any
 from sd_config_presets.config_components import log, log_error, write_json_to_file
-from modules.sd_samplers import samplers_map, samplers  # pyright: ignore[reportMissingImports, reportUnknownVariableType]
+from modules.sd_samplers import samplers_map, samplers  # pyright: ignore[reportMissingImports]
 import gradio as gr  # pyright: ignore[reportMissingImports]
 
 
@@ -24,14 +24,14 @@ def get_config_preset_dropdown_choices(new_config_presets: list[str]) -> list[st
         new_choices.extend(new_config_presets)
     return new_choices
 
-def save_config(config_presets: dict[str, Any], component_map: dict[str, Any], config_file_name_path: str):  # pyright: ignore[reportExplicitAny, reportUnknownParameterType]
+def save_config(config_presets: dict[str, Any], component_map: dict[str, Any], config_file_name_path: str):
     """
     Save the current values on the UI to a new entry in the config file
     """
 
     #log_debug("save_config()")
     # closure keeps path in memory, it's a hack to get around how click or change expects values to be formatted
-    def func(new_setting_name: str, fields_to_save_list, *new_setting):  # pyright: ignore[reportUnknownParameterType, reportMissingParameterType]
+    def func(new_setting_name: str, fields_to_save_list, *new_setting):
         #log_debug(f"save_config() func() new_setting_name={new_setting_name} *new_setting={new_setting}")
         #log_debug(f"config_presets()={config_presets}")
         #log_debug(f"component_map()={component_map}")
@@ -40,7 +40,7 @@ def save_config(config_presets: dict[str, Any], component_map: dict[str, Any], c
         if new_setting_name == "":
             # do nothing if no label entered in textbox
             # 如果在文本框中没有输入标签，则不执行任何操作
-            return gr.Dropdown.update(), ""  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+            return gr.Dropdown.update(), ""
 
         new_setting_map: dict[str, Any] = {}    # dict[str, Any]    {"txt2img_steps": 10, ...}
         # 新设置映射字典 - 字符串到任意类型的映射，格式如：{"txt2img_steps": 10, ...}
@@ -59,13 +59,13 @@ def save_config(config_presets: dict[str, Any], component_map: dict[str, Any], c
                 new_value = new_setting[i]  # this gives the index when the component is a dropdown
 
                 if isinstance(new_value, str) and (component_id == "txt2img_sampling" or component_id == "img2img_sampling" or component_id == "hr_sampler"):
-                    if isinstance(new_value, str):  # in A1111 1.6.0(?) the sampler is now returned as a string instead of an integer  # pyright: ignore[reportUnnecessaryIsInstance]
+                    if isinstance(new_value, str):  # in A1111 1.6.0(?) the sampler is now returned as a string instead of an integer
                         if new_value == "Use same sampler": # the hr_sampler dropdown has a "Use same sampler" value that doesn't exist in the samplers_map
                             # hr_sampler下拉菜单有一个"Use same sampler"值，在samplers_map中不存在
                             new_setting_map[component_id] = new_value
                         else:
                             new_setting_map[component_id] = samplers_map[new_value.lower()]
-                    elif isinstance(new_value, int):  # pyright: ignore[reportUnnecessaryIsInstance]
+                    elif isinstance(new_value, int):
                         new_setting_map[component_id] = samplers[new_value].name
                     else:
                         log_error(f"Unable get sampler name for component: {component_id}")
@@ -94,11 +94,11 @@ def save_config(config_presets: dict[str, Any], component_map: dict[str, Any], c
         # log(f"重启UI...") # 在_js中完成
 
         # update the dropdown with the new config preset
-        return gr.Dropdown.update(value=new_setting_name,     # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
+        return gr.Dropdown.update(value=new_setting_name,   
                                   #choices=list(config_presets.keys()),
                                   choices=get_config_preset_dropdown_choices(config_presets.keys()),  # pyright: ignore[reportArgumentType]
                                   ), "" # clear the 'New preset name' textbox
                                   # 使用新的配置预设更新下拉菜单
                                   # 清除"新预设名称"文本框
 
-    return func  # pyright: ignore[reportUnknownVariableType]
+    return func

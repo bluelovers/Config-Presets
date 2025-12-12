@@ -5,7 +5,7 @@ from typing import Any
 import modules.scripts as scripts  # pyright: ignore[reportMissingImports]
 import gradio as gr  # pyright: ignore[reportMissingImports]
 
-from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImports, reportUnknownVariableType]
+from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImports]
 from sd_config_presets.config_components import dict_synonyms, load_custom_tracked_component_ids, EnumTypeName, log, log_error, log_critical_error, load_config_file, write_json_to_file
 from sd_config_presets.sd_components import save_config, get_config_preset_dropdown_choices
 from sd_config_presets.utils import open_file_in_system_app
@@ -14,7 +14,7 @@ from sd_config_presets.utils import open_file_in_system_app
 # Contains the full path to the extension folder
 # Config-Presets扩展的基础目录路径
 # 包含扩展文件夹的完整路径
-BASEDIR: str = scripts.basedir()     #C:\path\to\Stable Diffusion\extensions\Config-Presets   needs to be set in global space to get the extra 'extensions\Config-Presets' path  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+BASEDIR: str = scripts.basedir()     #C:\path\to\Stable Diffusion\extensions\Config-Presets   needs to be set in global space to get the extra 'extensions\Config-Presets' path
 
 # Configuration file names for different components and modes
 # 不同组件和模式的配置文件名
@@ -986,7 +986,7 @@ class Script(scripts.Script):
         # so we can use the same code for both tabs
         # 为了通用化代码，检测我们是在txt2img标签页还是img2img标签页，然后使用相应的self变量
         # 这样我们可以为两个标签页使用相同的代码
-        component_map: dict[str, Any] = None  # pyright: ignore[reportAssignmentType, reportExplicitAny]
+        component_map: dict[str, Any] = None  # pyright: ignore[reportAssignmentType]
         component_ids: list[str] = None  # pyright: ignore[reportAssignmentType]
         config_file_name = None
         custom_tracked_components_config_file_name = None
@@ -1037,7 +1037,7 @@ class Script(scripts.Script):
             # this check needs to happen after optional_ids are accounted for
             # 防止None类型组件导致UI崩溃
             # 此检查需要在考虑optional_ids后进行
-            for component_name, component in component_map.items():  # pyright: ignore[reportAny]
+            for component_name, component in component_map.items():
                 if component is None:
                     log_error(f"The {type_name} component '{component_name}' could not be processed. This may be because you are running an outdated version of the Config-Presets extension, you included a component ID in the custom tracked components config file that does not exist, it no longer exists (if you updated an extension or Automatic1111), or is an invalid component (if this is the case, you need to manually edit the config file at {custom_tracked_components_config_file_name} or just delete it so it resets to defaults). This extension will not work until this issue is resolved.")
                     return
@@ -1052,7 +1052,7 @@ class Script(scripts.Script):
                     index_type_components.append(component.elem_id)
 
             preset_values = []
-            config_presets: dict[str, Any] = None  # pyright: ignore[reportExplicitAny, reportAssignmentType]
+            config_presets: dict[str, Any] = None  # pyright: ignore[reportAssignmentType]
             if self.is_txt2img:
                 config_presets = self.txt2img_config_presets
             else:
@@ -1064,7 +1064,7 @@ class Script(scripts.Script):
             #     #log(f"added \"{dropdownValue}\"")
 
             fields_checkboxgroup_value = component_ids.copy()
-            fields_checkboxgroup = gr.CheckboxGroup(choices=component_ids,  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+            fields_checkboxgroup = gr.CheckboxGroup(choices=component_ids,
                                                     value=fields_checkboxgroup_value,    #check all checkboxes by default
                                                     label="Fields to save",
                                                     show_label=True,
@@ -1074,8 +1074,8 @@ class Script(scripts.Script):
             # 复选框组值，默认选中所有复选框
             # 复选框组，用于选择要保存的字段
 
-            with gr.Box(elem_id=f"config_preset_wrapper_{type_name}"):  # pyright: ignore[reportUnknownMemberType]
-                with gr.Row(elem_id="config_preset_dropdown_row") as dropdown_row:  # pyright: ignore[reportUnknownMemberType, reportUnusedVariable, reportUnknownVariableType]
+            with gr.Box(elem_id=f"config_preset_wrapper_{type_name}"):
+                with gr.Row(elem_id="config_preset_dropdown_row"):
 
                     def get_config_preset(dropdown_value):
                         config_preset = config_presets[dropdown_value]
@@ -1151,7 +1151,7 @@ class Script(scripts.Script):
                         log_critical_error("The Config-Presets extension encountered a fatal error. A component required by this extension no longer exists in the Web UI. This is most likely due to the A1111 Web UI being updated. Try updating the Config-Presets extension. If that doesn't work, please post a bug report at https://github.com/Zyin055/Config-Presets/issues and delete your extensions/Config-Presets folder until an update is published.")
 
 
-                    def delete_selected_preset(config_preset_name: str):  # pyright: ignore[reportUnknownParameterType]
+                    def delete_selected_preset(config_preset_name: str):
                         """
                         Delete the selected preset from the configuration.
                         
@@ -1164,11 +1164,11 @@ class Script(scripts.Script):
                             write_json_to_file(config_presets, config_file_name)
 
                             preset_keys = list(config_presets.keys())
-                            return gr.Dropdown.update(value=preset_keys[len(preset_keys)-1],  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
+                            return gr.Dropdown.update(value=preset_keys[len(preset_keys)-1],
                                                         choices=get_config_preset_dropdown_choices(preset_keys),
                                                         )
                         # do nothing if no value is selected
-                        return gr.Dropdown.update()  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
+                        return gr.Dropdown.update()
                     
                     def refresh_dropdown_button_click():
                         """
@@ -1187,25 +1187,25 @@ class Script(scripts.Script):
                             config_presets.update(self.img2img_config_presets)
                             preset_values: list[str] = list(self.img2img_config_presets.keys())
                         
-                        return gr.Dropdown.update(choices=get_config_preset_dropdown_choices(preset_values))  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
+                        return gr.Dropdown.update(choices=get_config_preset_dropdown_choices(preset_values))
 
-                    refresh_dropdown_button = ToolButton(  # pyright: ignore[reportUnknownVariableType]
+                    refresh_dropdown_button = ToolButton(
                         value="🔄",
                         elem_id="script_config_preset_refresh_dropdown_button",
                         visible=False,
                     )
-                    refresh_dropdown_button.click(  # pyright: ignore[reportUnknownMemberType]
+                    refresh_dropdown_button.click(
                         fn=refresh_dropdown_button_click,
                         inputs=[],
                         outputs=[config_preset_dropdown],
                     )
 
-                    trash_button = ToolButton(  # pyright: ignore[reportUnknownVariableType]
+                    trash_button = ToolButton(
                         value="🗑️",
                         elem_id="script_config_preset_trash_button",
                         visible=False,
                     )
-                    trash_button.click(  # pyright: ignore[reportUnknownMemberType]
+                    trash_button.click(
                         fn=delete_selected_preset,
                         inputs=[config_preset_dropdown],
                         outputs=[config_preset_dropdown],
@@ -1213,12 +1213,12 @@ class Script(scripts.Script):
 
 
 
-                    open_config_file_button = ToolButton(  # pyright: ignore[reportUnknownVariableType]
+                    open_config_file_button = ToolButton(
                         value="📂",
                         elem_id="script_config_preset_open_config_file_button",
                         visible=False,
                     )
-                    open_config_file_button.click(  # pyright: ignore[reportUnknownMemberType]
+                    open_config_file_button.click(
                         fn=lambda: open_file_in_system_app(config_file_name),
                         inputs=[],
                         outputs=[],

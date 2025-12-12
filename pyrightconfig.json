@@ -1,5 +1,17 @@
 {
   "reportExplicitAny": "none",
   "reportAny": "none",
+
   "reportUnusedCallResult": "none",
+
+  "reportUnknownParameterType": "none",
+  "reportMissingParameterType": "none",
+
+  "reportUnknownMemberType": "none",
+  "reportUnknownVariableType": "none",
+
+  "reportAttributeAccessIssue": "none",
+
+  "reportUnnecessaryIsInstance": "information",
+  "reportUnusedFunction": "information",
 }
