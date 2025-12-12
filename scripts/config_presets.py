@@ -19,28 +19,29 @@ CONFIG_IMG2IMG_FILE_NAME = "config-img2img.json"
 
 
 def load_txt2img_custom_tracked_component_ids() -> list[str]:
+    type_name = EnumTypeName.txt2img
 
     # config file not found
     # First time running the extension or it was deleted, so fill it with default values
-    txt2img_custom_tracked_components_default_text = """# Put custom txt2img tracked component IDs here. This will allow those fields to be saved as a config preset.
+    txt2img_custom_tracked_components_default_text = f"""# Put custom {type_name} tracked component IDs here. This will allow those fields to be saved as a config preset.
 # Lines starting with a # are ignored.
 # Component IDs can be found in the HTML (id="..."), in modules/ui.py (elem_id="..."), or in an extensions python code. IDs like "component-5890" won't work because the number at the end will change each startup.
 # Entering an invalid component ID here will cause this extension to error and not load. Components that do not have a value associated with them, such as tabs and accordions, are not supported.
 # Note that components on the top row of the UI cannot be added here, such as "setting_sd_model_checkpoint", "setting_sd_vae", and "setting_CLIP_stop_at_last_layers".
 
 # Other fields:
-#txt2img_prompt
-#txt2img_neg_prompt
-#txt2img_styles
-#txt2img_seed
-#txt2img_subseed_show
-#txt2img_subseed
-#txt2img_subseed_strength
-#txt2img_seed_resize_from_w
-#txt2img_seed_resize_from_h
-#txt2img_tiling
-#txt2img_hr_resize_x
-#txt2img_hr_resize_y
+#{type_name}_prompt
+#{type_name}_neg_prompt
+#{type_name}_styles
+#{type_name}_seed
+#{type_name}_subseed_show
+#{type_name}_subseed
+#{type_name}_subseed_strength
+#{type_name}_seed_resize_from_w
+#{type_name}_seed_resize_from_h
+#{type_name}_tiling
+#{type_name}_hr_resize_x
+#{type_name}_hr_resize_y
 #hr_sampler
 #hires_prompt
 #hires_neg_prompt
@@ -49,66 +50,66 @@ def load_txt2img_custom_tracked_component_ids() -> list[str]:
 #script_list
 
 # X/Y/Z plot (script):
-#script_txt2img_xyz_plot_x_type
-#script_txt2img_xyz_plot_y_type
-#script_txt2img_xyz_plot_z_type
-#script_txt2img_xyz_plot_x_values
-#script_txt2img_xyz_plot_y_values
-#script_txt2img_xyz_plot_z_values
+#script_{type_name}_xyz_plot_x_type
+#script_{type_name}_xyz_plot_y_type
+#script_{type_name}_xyz_plot_z_type
+#script_{type_name}_xyz_plot_x_values
+#script_{type_name}_xyz_plot_y_values
+#script_{type_name}_xyz_plot_z_values
 
 # Latent Couple (extension):
-#cd_txt2img_divisions
-#cd_txt2img_positions
-#cd_txt2img_weights
-#cd_txt2img_end_at_this_step
+#cd_{type_name}_divisions
+#cd_{type_name}_positions
+#cd_{type_name}_weights
+#cd_{type_name}_end_at_this_step
 
 # Forge - ControlNet Integrated:
-#txt2img_controlnet_ControlNet-0_controlnet_control_step_slider
-#txt2img_controlnet_ControlNet-1_controlnet_control_step_slider
-#txt2img_controlnet_ControlNet-2_controlnet_control_step_slider
+#{type_name}_controlnet_ControlNet-0_controlnet_control_step_slider
+#{type_name}_controlnet_ControlNet-1_controlnet_control_step_slider
+#{type_name}_controlnet_ControlNet-2_controlnet_control_step_slider
 
 # ControlNet (extension):
-#txt2img_controlnet_ControlNet-0_controlnet_enable_checkbox
-#txt2img_controlnet_ControlNet-0_controlnet_low_vram_checkbox
-#txt2img_controlnet_ControlNet-0_controlnet_pixel_perfect_checkbox
-#txt2img_controlnet_ControlNet-0_controlnet_preprocessor_preview_checkbox
-#txt2img_controlnet_ControlNet-0_controlnet_type_filter_radio
-#txt2img_controlnet_ControlNet-0_controlnet_preprocessor_dropdown
-#txt2img_controlnet_ControlNet-0_controlnet_model_dropdown
-#txt2img_controlnet_ControlNet-0_controlnet_control_weight_slider
-#txt2img_controlnet_ControlNet-0_controlnet_start_control_step_slider
-#txt2img_controlnet_ControlNet-0_controlnet_ending_control_step_slider
-#txt2img_controlnet_ControlNet-0_controlnet_control_mode_radio
-#txt2img_controlnet_ControlNet-0_controlnet_resize_mode_radio
-#txt2img_controlnet_ControlNet-0_controlnet_automatically_send_generated_images_checkbox
+#{type_name}_controlnet_ControlNet-0_controlnet_enable_checkbox
+#{type_name}_controlnet_ControlNet-0_controlnet_low_vram_checkbox
+#{type_name}_controlnet_ControlNet-0_controlnet_pixel_perfect_checkbox
+#{type_name}_controlnet_ControlNet-0_controlnet_preprocessor_preview_checkbox
+#{type_name}_controlnet_ControlNet-0_controlnet_type_filter_radio
+#{type_name}_controlnet_ControlNet-0_controlnet_preprocessor_dropdown
+#{type_name}_controlnet_ControlNet-0_controlnet_model_dropdown
+#{type_name}_controlnet_ControlNet-0_controlnet_control_weight_slider
+#{type_name}_controlnet_ControlNet-0_controlnet_start_control_step_slider
+#{type_name}_controlnet_ControlNet-0_controlnet_ending_control_step_slider
+#{type_name}_controlnet_ControlNet-0_controlnet_control_mode_radio
+#{type_name}_controlnet_ControlNet-0_controlnet_resize_mode_radio
+#{type_name}_controlnet_ControlNet-0_controlnet_automatically_send_generated_images_checkbox
 
-#txt2img_controlnet_ControlNet-1_controlnet_enable_checkbox
-#txt2img_controlnet_ControlNet-1_controlnet_low_vram_checkbox
-#txt2img_controlnet_ControlNet-1_controlnet_pixel_perfect_checkbox
-#txt2img_controlnet_ControlNet-1_controlnet_preprocessor_preview_checkbox
-#txt2img_controlnet_ControlNet-1_controlnet_type_filter_radio
-#txt2img_controlnet_ControlNet-1_controlnet_preprocessor_dropdown
-#txt2img_controlnet_ControlNet-1_controlnet_model_dropdown
-#txt2img_controlnet_ControlNet-1_controlnet_control_weight_slider
-#txt2img_controlnet_ControlNet-1_controlnet_start_control_step_slider
-#txt2img_controlnet_ControlNet-1_controlnet_ending_control_step_slider
-#txt2img_controlnet_ControlNet-1_controlnet_control_mode_radio
-#txt2img_controlnet_ControlNet-1_controlnet_resize_mode_radio
-#txt2img_controlnet_ControlNet-1_controlnet_automatically_send_generated_images_checkbox
+#{type_name}_controlnet_ControlNet-1_controlnet_enable_checkbox
+#{type_name}_controlnet_ControlNet-1_controlnet_low_vram_checkbox
+#{type_name}_controlnet_ControlNet-1_controlnet_pixel_perfect_checkbox
+#{type_name}_controlnet_ControlNet-1_controlnet_preprocessor_preview_checkbox
+#{type_name}_controlnet_ControlNet-1_controlnet_type_filter_radio
+#{type_name}_controlnet_ControlNet-1_controlnet_preprocessor_dropdown
+#{type_name}_controlnet_ControlNet-1_controlnet_model_dropdown
+#{type_name}_controlnet_ControlNet-1_controlnet_control_weight_slider
+#{type_name}_controlnet_ControlNet-1_controlnet_start_control_step_slider
+#{type_name}_controlnet_ControlNet-1_controlnet_ending_control_step_slider
+#{type_name}_controlnet_ControlNet-1_controlnet_control_mode_radio
+#{type_name}_controlnet_ControlNet-1_controlnet_resize_mode_radio
+#{type_name}_controlnet_ControlNet-1_controlnet_automatically_send_generated_images_checkbox
 
-#txt2img_controlnet_ControlNet-2_controlnet_enable_checkbox
-#txt2img_controlnet_ControlNet-2_controlnet_low_vram_checkbox
-#txt2img_controlnet_ControlNet-2_controlnet_pixel_perfect_checkbox
-#txt2img_controlnet_ControlNet-2_controlnet_preprocessor_preview_checkbox
-#txt2img_controlnet_ControlNet-2_controlnet_type_filter_radio
-#txt2img_controlnet_ControlNet-2_controlnet_preprocessor_dropdown
-#txt2img_controlnet_ControlNet-2_controlnet_model_dropdown
-#txt2img_controlnet_ControlNet-2_controlnet_control_weight_slider
-#txt2img_controlnet_ControlNet-2_controlnet_start_control_step_slider
-#txt2img_controlnet_ControlNet-2_controlnet_ending_control_step_slider
-#txt2img_controlnet_ControlNet-2_controlnet_control_mode_radio
-#txt2img_controlnet_ControlNet-2_controlnet_resize_mode_radio
-#txt2img_controlnet_ControlNet-2_controlnet_automatically_send_generated_images_checkbox
+#{type_name}_controlnet_ControlNet-2_controlnet_enable_checkbox
+#{type_name}_controlnet_ControlNet-2_controlnet_low_vram_checkbox
+#{type_name}_controlnet_ControlNet-2_controlnet_pixel_perfect_checkbox
+#{type_name}_controlnet_ControlNet-2_controlnet_preprocessor_preview_checkbox
+#{type_name}_controlnet_ControlNet-2_controlnet_type_filter_radio
+#{type_name}_controlnet_ControlNet-2_controlnet_preprocessor_dropdown
+#{type_name}_controlnet_ControlNet-2_controlnet_model_dropdown
+#{type_name}_controlnet_ControlNet-2_controlnet_control_weight_slider
+#{type_name}_controlnet_ControlNet-2_controlnet_start_control_step_slider
+#{type_name}_controlnet_ControlNet-2_controlnet_ending_control_step_slider
+#{type_name}_controlnet_ControlNet-2_controlnet_control_mode_radio
+#{type_name}_controlnet_ControlNet-2_controlnet_resize_mode_radio
+#{type_name}_controlnet_ControlNet-2_controlnet_automatically_send_generated_images_checkbox
 
 # Tiled Diffusion (extension)
 #MD-t2i-enabled-checkbox
@@ -168,123 +169,124 @@ def load_txt2img_custom_tracked_component_ids() -> list[str]:
 #MD-t2i-fastdec
 
 # ADetailer (extension)
-#script_txt2img_adetailer_ad_main_accordion-checkbox
+#script_{type_name}_adetailer_ad_main_accordion-checkbox
 # ADetailer - 1st tab
-#script_txt2img_adetailer_ad_model
-#script_txt2img_adetailer_ad_prompt
-#script_txt2img_adetailer_ad_negative_prompt
+#script_{type_name}_adetailer_ad_model
+#script_{type_name}_adetailer_ad_prompt
+#script_{type_name}_adetailer_ad_negative_prompt
 # ADetailer - 1st tab - Detection
-#script_txt2img_adetailer_ad_confidence
-#script_txt2img_adetailer_ad_mask_min_ratio
-#script_txt2img_adetailer_ad_mask_max_ratio
+#script_{type_name}_adetailer_ad_confidence
+#script_{type_name}_adetailer_ad_mask_min_ratio
+#script_{type_name}_adetailer_ad_mask_max_ratio
 # ADetailer - 1st tab - Mask Preprocessing
-#script_txt2img_adetailer_ad_x_offset
-#script_txt2img_adetailer_ad_y_offset
-#script_txt2img_adetailer_ad_dilate_erode
-#script_txt2img_adetailer_ad_mask_merge_invert
+#script_{type_name}_adetailer_ad_x_offset
+#script_{type_name}_adetailer_ad_y_offset
+#script_{type_name}_adetailer_ad_dilate_erode
+#script_{type_name}_adetailer_ad_mask_merge_invert
 # ADetailer - 1st tab - Inpainting
-#script_txt2img_adetailer_ad_mask_blur
-#script_txt2img_adetailer_ad_denoising_strength
-#script_txt2img_adetailer_ad_inpaint_only_masked
-#script_txt2img_adetailer_ad_inpaint_only_masked_padding
-#script_txt2img_adetailer_ad_use_inpaint_width_height
-#script_txt2img_adetailer_ad_inpaint_width
-#script_txt2img_adetailer_ad_inpaint_height
-#script_txt2img_adetailer_ad_use_steps
-#script_txt2img_adetailer_ad_steps
-#script_txt2img_adetailer_ad_use_cfg_scale
-#script_txt2img_adetailer_ad_cfg_scale
-#script_txt2img_adetailer_ad_use_checkpoint
-#script_txt2img_adetailer_ad_use_vae
-#script_txt2img_adetailer_ad_use_sampler
-#script_txt2img_adetailer_ad_sampler
-#script_txt2img_adetailer_ad_scheduler
-#script_txt2img_adetailer_ad_use_noise_multiplier
-#script_txt2img_adetailer_ad_noise_multiplier
-#script_txt2img_adetailer_ad_use_clip_skip
-#script_txt2img_adetailer_ad_clip_skip
-#script_txt2img_adetailer_ad_restore_face
+#script_{type_name}_adetailer_ad_mask_blur
+#script_{type_name}_adetailer_ad_denoising_strength
+#script_{type_name}_adetailer_ad_inpaint_only_masked
+#script_{type_name}_adetailer_ad_inpaint_only_masked_padding
+#script_{type_name}_adetailer_ad_use_inpaint_width_height
+#script_{type_name}_adetailer_ad_inpaint_width
+#script_{type_name}_adetailer_ad_inpaint_height
+#script_{type_name}_adetailer_ad_use_steps
+#script_{type_name}_adetailer_ad_steps
+#script_{type_name}_adetailer_ad_use_cfg_scale
+#script_{type_name}_adetailer_ad_cfg_scale
+#script_{type_name}_adetailer_ad_use_checkpoint
+#script_{type_name}_adetailer_ad_use_vae
+#script_{type_name}_adetailer_ad_use_sampler
+#script_{type_name}_adetailer_ad_sampler
+#script_{type_name}_adetailer_ad_scheduler
+#script_{type_name}_adetailer_ad_use_noise_multiplier
+#script_{type_name}_adetailer_ad_noise_multiplier
+#script_{type_name}_adetailer_ad_use_clip_skip
+#script_{type_name}_adetailer_ad_clip_skip
+#script_{type_name}_adetailer_ad_restore_face
 # ADetailer - 1st tab - ControlNet
-#script_txt2img_adetailer_ad_controlnet_model
-#script_txt2img_adetailer_ad_controlnet_weight
-#script_txt2img_adetailer_ad_controlnet_guidance_start
-#script_txt2img_adetailer_ad_controlnet_guidance_end
+#script_{type_name}_adetailer_ad_controlnet_model
+#script_{type_name}_adetailer_ad_controlnet_weight
+#script_{type_name}_adetailer_ad_controlnet_guidance_start
+#script_{type_name}_adetailer_ad_controlnet_guidance_end
 # ADetailer - 2nd tab
-#script_txt2img_adetailer_ad_model_2nd
-#script_txt2img_adetailer_ad_prompt_2nd
-#script_txt2img_adetailer_ad_negative_prompt_2nd
+#script_{type_name}_adetailer_ad_model_2nd
+#script_{type_name}_adetailer_ad_prompt_2nd
+#script_{type_name}_adetailer_ad_negative_prompt_2nd
 # ADetailer - 2nd tab - Detection
-#script_txt2img_adetailer_ad_confidence_2nd
-#script_txt2img_adetailer_ad_mask_min_ratio_2nd
-#script_txt2img_adetailer_ad_mask_max_ratio_2nd
+#script_{type_name}_adetailer_ad_confidence_2nd
+#script_{type_name}_adetailer_ad_mask_min_ratio_2nd
+#script_{type_name}_adetailer_ad_mask_max_ratio_2nd
 # ADetailer - 2nd tab - Mask Preprocessing
-#script_txt2img_adetailer_ad_x_offset_2nd
-#script_txt2img_adetailer_ad_y_offset_2nd
-#script_txt2img_adetailer_ad_dilate_erode_2nd
-#script_txt2img_adetailer_ad_mask_merge_invert_2nd
+#script_{type_name}_adetailer_ad_x_offset_2nd
+#script_{type_name}_adetailer_ad_y_offset_2nd
+#script_{type_name}_adetailer_ad_dilate_erode_2nd
+#script_{type_name}_adetailer_ad_mask_merge_invert_2nd
 # ADetailer - 2nd tab - Inpainting
-#script_txt2img_adetailer_ad_mask_blur_2nd
-#script_txt2img_adetailer_ad_denoising_strength_2nd
-#script_txt2img_adetailer_ad_inpaint_only_masked_2nd
-#script_txt2img_adetailer_ad_inpaint_only_masked_padding_2nd
-#script_txt2img_adetailer_ad_use_inpaint_width_height_2nd
-#script_txt2img_adetailer_ad_inpaint_width_2nd
-#script_txt2img_adetailer_ad_inpaint_height_2nd
-#script_txt2img_adetailer_ad_use_steps_2nd
-#script_txt2img_adetailer_ad_steps_2nd
-#script_txt2img_adetailer_ad_use_cfg_scale_2nd
-#script_txt2img_adetailer_ad_cfg_scale_2nd
-#script_txt2img_adetailer_ad_use_checkpoint_2nd
-#script_txt2img_adetailer_ad_use_vae_2nd
-#script_txt2img_adetailer_ad_use_sampler_2nd
-#script_txt2img_adetailer_ad_sampler_2nd
-#script_txt2img_adetailer_ad_scheduler_2nd
-#script_txt2img_adetailer_ad_use_noise_multiplier_2nd
-#script_txt2img_adetailer_ad_noise_multiplier_2nd
-#script_txt2img_adetailer_ad_use_clip_skip_2nd
-#script_txt2img_adetailer_ad_clip_skip_2nd
-#script_txt2img_adetailer_ad_restore_face_2nd
+#script_{type_name}_adetailer_ad_mask_blur_2nd
+#script_{type_name}_adetailer_ad_denoising_strength_2nd
+#script_{type_name}_adetailer_ad_inpaint_only_masked_2nd
+#script_{type_name}_adetailer_ad_inpaint_only_masked_padding_2nd
+#script_{type_name}_adetailer_ad_use_inpaint_width_height_2nd
+#script_{type_name}_adetailer_ad_inpaint_width_2nd
+#script_{type_name}_adetailer_ad_inpaint_height_2nd
+#script_{type_name}_adetailer_ad_use_steps_2nd
+#script_{type_name}_adetailer_ad_steps_2nd
+#script_{type_name}_adetailer_ad_use_cfg_scale_2nd
+#script_{type_name}_adetailer_ad_cfg_scale_2nd
+#script_{type_name}_adetailer_ad_use_checkpoint_2nd
+#script_{type_name}_adetailer_ad_use_vae_2nd
+#script_{type_name}_adetailer_ad_use_sampler_2nd
+#script_{type_name}_adetailer_ad_sampler_2nd
+#script_{type_name}_adetailer_ad_scheduler_2nd
+#script_{type_name}_adetailer_ad_use_noise_multiplier_2nd
+#script_{type_name}_adetailer_ad_noise_multiplier_2nd
+#script_{type_name}_adetailer_ad_use_clip_skip_2nd
+#script_{type_name}_adetailer_ad_clip_skip_2nd
+#script_{type_name}_adetailer_ad_restore_face_2nd
 # ADetailer - 2nd tab - ControlNet
-#script_txt2img_adetailer_ad_controlnet_model_2nd
-#script_txt2img_adetailer_ad_controlnet_weight_2nd
-#script_txt2img_adetailer_ad_controlnet_guidance_start_2nd
-#script_txt2img_adetailer_ad_controlnet_guidance_end_2nd
+#script_{type_name}_adetailer_ad_controlnet_model_2nd
+#script_{type_name}_adetailer_ad_controlnet_weight_2nd
+#script_{type_name}_adetailer_ad_controlnet_guidance_start_2nd
+#script_{type_name}_adetailer_ad_controlnet_guidance_end_2nd
 """
 
     return load_custom_tracked_component_ids(f"{BASEDIR}/{CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME}", EnumTypeName.txt2img, txt2img_custom_tracked_components_default_text)
 
 
 def load_img2img_custom_tracked_component_ids() -> list[str]:
+    type_name = EnumTypeName.img2img
 
     # config file not found
     # First time running the extension or it was deleted, so fill it with default values
-    img2img_custom_tracked_components_default_text = """# Put custom img2img tracked component IDs here. This will allow those fields to be saved as a config preset.
+    img2img_custom_tracked_components_default_text = f"""# Put custom {type_name} tracked component IDs here. This will allow those fields to be saved as a config preset.
 # Lines starting with a # are ignored.
 # Component IDs can be found in the HTML (id="..."), in modules/ui.py (elem_id="..."), or in an extensions python code. IDs like "component-5890" won't work because the number at the end will change each startup.
 # Entering an invalid component ID here will cause this extension to error and not load. Components that do not have a value associated with them, such as tabs and accordions, are not supported.
 # Note that components on the top row of the UI cannot be added here, such as "setting_sd_model_checkpoint", "setting_sd_vae", and "setting_CLIP_stop_at_last_layers".
 
 # Other fields:
-#img2img_prompt
-#img2img_neg_prompt
-#img2img_mask_mode
-#img2img_mask_blur
-#img2img_mask_alpha
-#img2img_inpainting_fill
-#img2img_inpaint_full_res
-#img2img_inpaint_full_res_padding
+#{type_name}_prompt
+#{type_name}_neg_prompt
+#{type_name}_mask_mode
+#{type_name}_mask_blur
+#{type_name}_mask_alpha
+#{type_name}_inpainting_fill
+#{type_name}_inpaint_full_res
+#{type_name}_inpaint_full_res_padding
 #resize_mode
-#img2img_scale
-#img2img_seed
-#img2img_subseed_show
-#img2img_subseed
-#img2img_subseed_strength
-#img2img_seed_resize_from_w
-#img2img_seed_resize_from_h
-#img2img_tiling
-#img2img_batch_input_dir
-#img2img_batch_output_dir
-#img2img_batch_inpaint_mask_dir
+#{type_name}_scale
+#{type_name}_seed
+#{type_name}_subseed_show
+#{type_name}_subseed
+#{type_name}_subseed_strength
+#{type_name}_seed_resize_from_w
+#{type_name}_seed_resize_from_h
+#{type_name}_tiling
+#{type_name}_batch_input_dir
+#{type_name}_batch_output_dir
+#{type_name}_batch_inpaint_mask_dir
 
 # Soft Inpainting:
 #soft_inpainting_enabled-checkbox
@@ -299,12 +301,12 @@ def load_img2img_custom_tracked_component_ids() -> list[str]:
 #script_list
 
 # X/Y/Z plot (script):
-#script_img2img_xyz_plot_x_type
-#script_img2img_xyz_plot_y_type
-#script_img2img_xyz_plot_z_type
-#script_img2img_xyz_plot_x_values
-#script_img2img_xyz_plot_y_values
-#script_img2img_xyz_plot_z_values
+#script_{type_name}_xyz_plot_x_type
+#script_{type_name}_xyz_plot_y_type
+#script_{type_name}_xyz_plot_z_type
+#script_{type_name}_xyz_plot_x_values
+#script_{type_name}_xyz_plot_y_values
+#script_{type_name}_xyz_plot_z_values
 
 # Loopback (script):
 #script_loopback_loops
@@ -316,58 +318,58 @@ def load_img2img_custom_tracked_component_ids() -> list[str]:
 #script_sd_upscale_upscaler_index
 
 # Latent Couple (extension):
-#cd_img2img_divisions
-#cd_img2img_positions
-#cd_img2img_weights
-#cd_img2img_end_at_this_step
+#cd_{type_name}_divisions
+#cd_{type_name}_positions
+#cd_{type_name}_weights
+#cd_{type_name}_end_at_this_step
 
 # Forge - ControlNet Integrated:
-#img2img_controlnet_ControlNet-0_controlnet_control_step_slider
-#img2img_controlnet_ControlNet-1_controlnet_control_step_slider
-#img2img_controlnet_ControlNet-2_controlnet_control_step_slider
+#{type_name}_controlnet_ControlNet-0_controlnet_control_step_slider
+#{type_name}_controlnet_ControlNet-1_controlnet_control_step_slider
+#{type_name}_controlnet_ControlNet-2_controlnet_control_step_slider
 
 # ControlNet (extension):
-#img2img_controlnet_ControlNet-0_controlnet_enable_checkbox
-#img2img_controlnet_ControlNet-0_controlnet_low_vram_checkbox
-#img2img_controlnet_ControlNet-0_controlnet_pixel_perfect_checkbox
-#img2img_controlnet_ControlNet-0_controlnet_preprocessor_preview_checkbox
-#img2img_controlnet_ControlNet-0_controlnet_type_filter_radio
-#img2img_controlnet_ControlNet-0_controlnet_preprocessor_dropdown
-#img2img_controlnet_ControlNet-0_controlnet_model_dropdown
-#img2img_controlnet_ControlNet-0_controlnet_control_weight_slider
-#img2img_controlnet_ControlNet-0_controlnet_start_control_step_slider
-#img2img_controlnet_ControlNet-0_controlnet_ending_control_step_slider
-#img2img_controlnet_ControlNet-0_controlnet_control_mode_radio
-#img2img_controlnet_ControlNet-0_controlnet_resize_mode_radio
-#img2img_controlnet_ControlNet-0_controlnet_automatically_send_generated_images_checkbox
+#{type_name}_controlnet_ControlNet-0_controlnet_enable_checkbox
+#{type_name}_controlnet_ControlNet-0_controlnet_low_vram_checkbox
+#{type_name}_controlnet_ControlNet-0_controlnet_pixel_perfect_checkbox
+#{type_name}_controlnet_ControlNet-0_controlnet_preprocessor_preview_checkbox
+#{type_name}_controlnet_ControlNet-0_controlnet_type_filter_radio
+#{type_name}_controlnet_ControlNet-0_controlnet_preprocessor_dropdown
+#{type_name}_controlnet_ControlNet-0_controlnet_model_dropdown
+#{type_name}_controlnet_ControlNet-0_controlnet_control_weight_slider
+#{type_name}_controlnet_ControlNet-0_controlnet_start_control_step_slider
+#{type_name}_controlnet_ControlNet-0_controlnet_ending_control_step_slider
+#{type_name}_controlnet_ControlNet-0_controlnet_control_mode_radio
+#{type_name}_controlnet_ControlNet-0_controlnet_resize_mode_radio
+#{type_name}_controlnet_ControlNet-0_controlnet_automatically_send_generated_images_checkbox
 
-#img2img_controlnet_ControlNet-1_controlnet_enable_checkbox
-#img2img_controlnet_ControlNet-1_controlnet_low_vram_checkbox
-#img2img_controlnet_ControlNet-1_controlnet_pixel_perfect_checkbox
-#img2img_controlnet_ControlNet-1_controlnet_preprocessor_preview_checkbox
-#img2img_controlnet_ControlNet-1_controlnet_type_filter_radio
-#img2img_controlnet_ControlNet-1_controlnet_preprocessor_dropdown
-#img2img_controlnet_ControlNet-1_controlnet_model_dropdown
-#img2img_controlnet_ControlNet-1_controlnet_control_weight_slider
-#img2img_controlnet_ControlNet-1_controlnet_start_control_step_slider
-#img2img_controlnet_ControlNet-1_controlnet_ending_control_step_slider
-#img2img_controlnet_ControlNet-1_controlnet_control_mode_radio
-#img2img_controlnet_ControlNet-1_controlnet_resize_mode_radio
-#img2img_controlnet_ControlNet-1_controlnet_automatically_send_generated_images_checkbox
+#{type_name}_controlnet_ControlNet-1_controlnet_enable_checkbox
+#{type_name}_controlnet_ControlNet-1_controlnet_low_vram_checkbox
+#{type_name}_controlnet_ControlNet-1_controlnet_pixel_perfect_checkbox
+#{type_name}_controlnet_ControlNet-1_controlnet_preprocessor_preview_checkbox
+#{type_name}_controlnet_ControlNet-1_controlnet_type_filter_radio
+#{type_name}_controlnet_ControlNet-1_controlnet_preprocessor_dropdown
+#{type_name}_controlnet_ControlNet-1_controlnet_model_dropdown
+#{type_name}_controlnet_ControlNet-1_controlnet_control_weight_slider
+#{type_name}_controlnet_ControlNet-1_controlnet_start_control_step_slider
+#{type_name}_controlnet_ControlNet-1_controlnet_ending_control_step_slider
+#{type_name}_controlnet_ControlNet-1_controlnet_control_mode_radio
+#{type_name}_controlnet_ControlNet-1_controlnet_resize_mode_radio
+#{type_name}_controlnet_ControlNet-1_controlnet_automatically_send_generated_images_checkbox
 
-#img2img_controlnet_ControlNet-2_controlnet_enable_checkbox
-#img2img_controlnet_ControlNet-2_controlnet_low_vram_checkbox
-#img2img_controlnet_ControlNet-2_controlnet_pixel_perfect_checkbox
-#img2img_controlnet_ControlNet-2_controlnet_preprocessor_preview_checkbox
-#img2img_controlnet_ControlNet-2_controlnet_type_filter_radio
-#img2img_controlnet_ControlNet-2_controlnet_preprocessor_dropdown
-#img2img_controlnet_ControlNet-2_controlnet_model_dropdown
-#img2img_controlnet_ControlNet-2_controlnet_control_weight_slider
-#img2img_controlnet_ControlNet-2_controlnet_start_control_step_slider
-#img2img_controlnet_ControlNet-2_controlnet_ending_control_step_slider
-#img2img_controlnet_ControlNet-2_controlnet_control_mode_radio
-#img2img_controlnet_ControlNet-2_controlnet_resize_mode_radio
-#img2img_controlnet_ControlNet-2_controlnet_automatically_send_generated_images_checkbox
+#{type_name}_controlnet_ControlNet-2_controlnet_enable_checkbox
+#{type_name}_controlnet_ControlNet-2_controlnet_low_vram_checkbox
+#{type_name}_controlnet_ControlNet-2_controlnet_pixel_perfect_checkbox
+#{type_name}_controlnet_ControlNet-2_controlnet_preprocessor_preview_checkbox
+#{type_name}_controlnet_ControlNet-2_controlnet_type_filter_radio
+#{type_name}_controlnet_ControlNet-2_controlnet_preprocessor_dropdown
+#{type_name}_controlnet_ControlNet-2_controlnet_model_dropdown
+#{type_name}_controlnet_ControlNet-2_controlnet_control_weight_slider
+#{type_name}_controlnet_ControlNet-2_controlnet_start_control_step_slider
+#{type_name}_controlnet_ControlNet-2_controlnet_ending_control_step_slider
+#{type_name}_controlnet_ControlNet-2_controlnet_control_mode_radio
+#{type_name}_controlnet_ControlNet-2_controlnet_resize_mode_radio
+#{type_name}_controlnet_ControlNet-2_controlnet_automatically_send_generated_images_checkbox
 
 # Tiled Diffusion (extension)
 #MD-i2i-enabled-checkbox
@@ -440,87 +442,87 @@ def load_img2img_custom_tracked_component_ids() -> list[str]:
 #StableSR-pure-noise
 
 # ADetailer (extension)
-#script_img2img_adetailer_ad_main_accordion-checkbox
+#script_{type_name}_adetailer_ad_main_accordion-checkbox
 # ADetailer - 1st tab
-#script_img2img_adetailer_ad_model
-#script_img2img_adetailer_ad_prompt
-#script_img2img_adetailer_ad_negative_prompt
+#script_{type_name}_adetailer_ad_model
+#script_{type_name}_adetailer_ad_prompt
+#script_{type_name}_adetailer_ad_negative_prompt
 # ADetailer - 1st tab - Detection
-#script_img2img_adetailer_ad_confidence
-#script_img2img_adetailer_ad_mask_min_ratio
-#script_img2img_adetailer_ad_mask_max_ratio
+#script_{type_name}_adetailer_ad_confidence
+#script_{type_name}_adetailer_ad_mask_min_ratio
+#script_{type_name}_adetailer_ad_mask_max_ratio
 # ADetailer - 1st tab - Mask Preprocessing
-#script_img2img_adetailer_ad_x_offset
-#script_img2img_adetailer_ad_y_offset
-#script_img2img_adetailer_ad_dilate_erode
-#script_img2img_adetailer_ad_mask_merge_invert
+#script_{type_name}_adetailer_ad_x_offset
+#script_{type_name}_adetailer_ad_y_offset
+#script_{type_name}_adetailer_ad_dilate_erode
+#script_{type_name}_adetailer_ad_mask_merge_invert
 # ADetailer - 1st tab - Inpainting
-#script_img2img_adetailer_ad_mask_blur
-#script_img2img_adetailer_ad_denoising_strength
-#script_img2img_adetailer_ad_inpaint_full_res
-#script_img2img_adetailer_ad_inpaint_full_res_padding
-#script_img2img_adetailer_ad_use_inpaint_width_height
-#script_img2img_adetailer_ad_inpaint_width
-#script_img2img_adetailer_ad_inpaint_height
-#script_img2img_adetailer_ad_use_steps
-#script_img2img_adetailer_ad_steps
-#script_img2img_adetailer_ad_use_cfg_scale
-#script_img2img_adetailer_ad_cfg_scale
-#script_img2img_adetailer_ad_use_checkpoint
-#script_img2img_adetailer_ad_use_vae
-#script_img2img_adetailer_ad_use_sampler
-#script_img2img_adetailer_ad_sampler
-#script_img2img_adetailer_ad_scheduler
-#script_img2img_adetailer_ad_use_noise_multiplier
-#script_img2img_adetailer_ad_noise_multiplier
-#script_img2img_adetailer_ad_use_clip_skip
-#script_img2img_adetailer_ad_clip_skip
-#script_img2img_adetailer_ad_restore_face
+#script_{type_name}_adetailer_ad_mask_blur
+#script_{type_name}_adetailer_ad_denoising_strength
+#script_{type_name}_adetailer_ad_inpaint_full_res
+#script_{type_name}_adetailer_ad_inpaint_full_res_padding
+#script_{type_name}_adetailer_ad_use_inpaint_width_height
+#script_{type_name}_adetailer_ad_inpaint_width
+#script_{type_name}_adetailer_ad_inpaint_height
+#script_{type_name}_adetailer_ad_use_steps
+#script_{type_name}_adetailer_ad_steps
+#script_{type_name}_adetailer_ad_use_cfg_scale
+#script_{type_name}_adetailer_ad_cfg_scale
+#script_{type_name}_adetailer_ad_use_checkpoint
+#script_{type_name}_adetailer_ad_use_vae
+#script_{type_name}_adetailer_ad_use_sampler
+#script_{type_name}_adetailer_ad_sampler
+#script_{type_name}_adetailer_ad_scheduler
+#script_{type_name}_adetailer_ad_use_noise_multiplier
+#script_{type_name}_adetailer_ad_noise_multiplier
+#script_{type_name}_adetailer_ad_use_clip_skip
+#script_{type_name}_adetailer_ad_clip_skip
+#script_{type_name}_adetailer_ad_restore_face
 # ADetailer - 1st tab - ControlNet
-#script_img2img_adetailer_ad_controlnet_model
-#script_img2img_adetailer_ad_controlnet_weight
-#script_img2img_adetailer_ad_controlnet_guidance_start
-#script_img2img_adetailer_ad_controlnet_guidance_end
+#script_{type_name}_adetailer_ad_controlnet_model
+#script_{type_name}_adetailer_ad_controlnet_weight
+#script_{type_name}_adetailer_ad_controlnet_guidance_start
+#script_{type_name}_adetailer_ad_controlnet_guidance_end
 # ADetailer - 2nd tab
-#script_img2img_adetailer_ad_model_2nd
-#script_img2img_adetailer_ad_prompt_2nd
-#script_img2img_adetailer_ad_negative_prompt_2nd
+#script_{type_name}_adetailer_ad_model_2nd
+#script_{type_name}_adetailer_ad_prompt_2nd
+#script_{type_name}_adetailer_ad_negative_prompt_2nd
 # ADetailer - 2nd tab - Detection
-#script_img2img_adetailer_ad_confidence_2nd
-#script_img2img_adetailer_ad_mask_min_ratio_2nd
-#script_img2img_adetailer_ad_mask_max_ratio_2nd
+#script_{type_name}_adetailer_ad_confidence_2nd
+#script_{type_name}_adetailer_ad_mask_min_ratio_2nd
+#script_{type_name}_adetailer_ad_mask_max_ratio_2nd
 # ADetailer - 2nd tab - Mask Preprocessing
-#script_img2img_adetailer_ad_x_offset_2nd
-#script_img2img_adetailer_ad_y_offset_2nd
-#script_img2img_adetailer_ad_dilate_erode_2nd
-#script_img2img_adetailer_ad_mask_merge_invert_2nd
+#script_{type_name}_adetailer_ad_x_offset_2nd
+#script_{type_name}_adetailer_ad_y_offset_2nd
+#script_{type_name}_adetailer_ad_dilate_erode_2nd
+#script_{type_name}_adetailer_ad_mask_merge_invert_2nd
 # ADetailer - 2nd tab - Inpainting
-#script_img2img_adetailer_ad_mask_blur_2nd
-#script_img2img_adetailer_ad_denoising_strength_2nd
-#script_img2img_adetailer_ad_inpaint_full_res_2nd
-#script_img2img_adetailer_ad_inpaint_full_res_padding_2nd
-#script_img2img_adetailer_ad_use_inpaint_width_height_2nd
-#script_img2img_adetailer_ad_inpaint_width_2nd
-#script_img2img_adetailer_ad_inpaint_height_2nd
-#script_img2img_adetailer_ad_use_steps_2nd
-#script_img2img_adetailer_ad_steps_2nd
-#script_img2img_adetailer_ad_use_cfg_scale_2nd
-#script_img2img_adetailer_ad_cfg_scale_2nd
-#script_img2img_adetailer_ad_use_checkpoint_2nd
-#script_img2img_adetailer_ad_use_vae_2nd
-#script_img2img_adetailer_ad_use_sampler_2nd
-#script_img2img_adetailer_ad_sampler_2nd
-#script_img2img_adetailer_ad_scheduler_2nd
-#script_img2img_adetailer_ad_use_noise_multiplier_2nd
-#script_img2img_adetailer_ad_noise_multiplier_2nd
-#script_img2img_adetailer_ad_use_clip_skip_2nd
-#script_img2img_adetailer_ad_clip_skip_2nd
-#script_img2img_adetailer_ad_restore_face_2nd
+#script_{type_name}_adetailer_ad_mask_blur_2nd
+#script_{type_name}_adetailer_ad_denoising_strength_2nd
+#script_{type_name}_adetailer_ad_inpaint_full_res_2nd
+#script_{type_name}_adetailer_ad_inpaint_full_res_padding_2nd
+#script_{type_name}_adetailer_ad_use_inpaint_width_height_2nd
+#script_{type_name}_adetailer_ad_inpaint_width_2nd
+#script_{type_name}_adetailer_ad_inpaint_height_2nd
+#script_{type_name}_adetailer_ad_use_steps_2nd
+#script_{type_name}_adetailer_ad_steps_2nd
+#script_{type_name}_adetailer_ad_use_cfg_scale_2nd
+#script_{type_name}_adetailer_ad_cfg_scale_2nd
+#script_{type_name}_adetailer_ad_use_checkpoint_2nd
+#script_{type_name}_adetailer_ad_use_vae_2nd
+#script_{type_name}_adetailer_ad_use_sampler_2nd
+#script_{type_name}_adetailer_ad_sampler_2nd
+#script_{type_name}_adetailer_ad_scheduler_2nd
+#script_{type_name}_adetailer_ad_use_noise_multiplier_2nd
+#script_{type_name}_adetailer_ad_noise_multiplier_2nd
+#script_{type_name}_adetailer_ad_use_clip_skip_2nd
+#script_{type_name}_adetailer_ad_clip_skip_2nd
+#script_{type_name}_adetailer_ad_restore_face_2nd
 # ADetailer - 2nd tab - ADetailer ControlNet
-#script_img2img_adetailer_ad_controlnet_model_2nd
-#script_img2img_adetailer_ad_controlnet_weight_2nd
-#script_img2img_adetailer_ad_controlnet_guidance_start_2nd
-#script_img2img_adetailer_ad_controlnet_guidance_end_2nd
+#script_{type_name}_adetailer_ad_controlnet_model_2nd
+#script_{type_name}_adetailer_ad_controlnet_weight_2nd
+#script_{type_name}_adetailer_ad_controlnet_guidance_start_2nd
+#script_{type_name}_adetailer_ad_controlnet_guidance_end_2nd
 
 # Ultimate SD Upscale
 #ultimateupscale_target_size_type
