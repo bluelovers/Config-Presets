@@ -1021,18 +1021,21 @@ class Script(scripts.Script):
         custom_tracked_components_config_file_name = None
         optional_ids = None
         synonym_ids = self.synonym_ids
+        type_name: EnumTypeName = None  # pyright: ignore[reportAssignmentType]
         if self.is_txt2img:
             component_map = self.txt2img_component_map
             component_ids = self.txt2img_component_ids
             config_file_name = CONFIG_TXT2IMG_FILE_NAME
             custom_tracked_components_config_file_name = CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME
             optional_ids = self.txt2img_optional_ids
+            type_name = EnumTypeName.txt2img
         else:
             component_map = self.img2img_component_map
             component_ids = self.img2img_component_ids
             config_file_name = CONFIG_IMG2IMG_FILE_NAME
             custom_tracked_components_config_file_name = CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME
             optional_ids = self.img2img_optional_ids
+            type_name = EnumTypeName.img2img
 
         #if component.label in self.component_map:
         if component.elem_id in component_map:
@@ -1063,9 +1066,9 @@ class Script(scripts.Script):
             # this check needs to happen after optional_ids are accounted for
             # 防止None类型组件导致UI崩溃
             # 此检查需要在考虑optional_ids后进行
-            for component_name, component in component_map.items():
+            for component_name, component in component_map.items():  # pyright: ignore[reportAny]
                 if component is None:
-                    log_error(f"The {'txt2img' if self.is_txt2img else 'img2img'} component '{component_name}' could not be processed. This may be because you are running an outdated version of the Config-Presets extension, you included a component ID in the custom tracked components config file that does not exist, it no longer exists (if you updated an extension or Automatic1111), or is an invalid component (if this is the case, you need to manually edit the config file at {custom_tracked_components_config_file_name} or just delete it so it resets to defaults). This extension will not work until this issue is resolved.")
+                    log_error(f"The {type_name} component '{component_name}' could not be processed. This may be because you are running an outdated version of the Config-Presets extension, you included a component ID in the custom tracked components config file that does not exist, it no longer exists (if you updated an extension or Automatic1111), or is an invalid component (if this is the case, you need to manually edit the config file at {custom_tracked_components_config_file_name} or just delete it so it resets to defaults). This extension will not work until this issue is resolved.")
                     return
 
             # Mark components with type "index" to be transformed
@@ -1090,7 +1093,7 @@ class Script(scripts.Script):
             #     #log(f"added \"{dropdownValue}\"")
 
             fields_checkboxgroup_value = component_ids.copy()
-            fields_checkboxgroup = gr.CheckboxGroup(choices=component_ids,
+            fields_checkboxgroup = gr.CheckboxGroup(choices=component_ids,  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
                                                     value=fields_checkboxgroup_value,    #check all checkboxes by default
                                                     label="Fields to save",
                                                     show_label=True,
@@ -1100,8 +1103,8 @@ class Script(scripts.Script):
             # 复选框组值，默认选中所有复选框
             # 复选框组，用于选择要保存的字段
 
-            with gr.Box(elem_id="config_preset_wrapper_txt2img" if self.is_txt2img else "config_preset_wrapper_img2img"):
-                with gr.Row(elem_id="config_preset_dropdown_row") as dropdown_row:
+            with gr.Box(elem_id=f"config_preset_wrapper_{type_name}"):  # pyright: ignore[reportUnknownMemberType]
+                with gr.Row(elem_id="config_preset_dropdown_row") as dropdown_row:  # pyright: ignore[reportUnknownMemberType, reportUnusedVariable, reportUnknownVariableType]
 
                     def get_config_preset(dropdown_value):
                         config_preset = config_presets[dropdown_value]
