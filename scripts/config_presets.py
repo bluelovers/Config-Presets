@@ -1,3 +1,5 @@
+# Import necessary modules for Stable Diffusion Web UI extension
+# 导入Stable Diffusion Web UI扩展所需的模块
 import traceback
 import modules.sd_samplers  # pyright: ignore[reportMissingImports]
 import modules.scripts as scripts  # pyright: ignore[reportMissingImports]
@@ -11,7 +13,14 @@ from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImp
 from sd_config_presets.config_components import load_custom_tracked_component_ids, EnumTypeName, log_error, log_critical_error
 
 
+# Base directory path for the Config-Presets extension
+# Contains the full path to the extension folder
+# Config-Presets扩展的基础目录路径
+# 包含扩展文件夹的完整路径
 BASEDIR: str = scripts.basedir()     #C:\path\to\Stable Diffusion\extensions\Config-Presets   needs to be set in global space to get the extra 'extensions\Config-Presets' path  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+
+# Configuration file names for different components and modes
+# 不同组件和模式的配置文件名
 CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME = "config-txt2img-custom-tracked-components.txt"
 CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME = "config-img2img-custom-tracked-components.txt"
 CONFIG_TXT2IMG_FILE_NAME = "config-txt2img.json"
@@ -19,10 +28,21 @@ CONFIG_IMG2IMG_FILE_NAME = "config-img2img.json"
 
 
 def load_txt2img_custom_tracked_component_ids() -> list[str]:
+    """
+    Load custom tracked component IDs for txt2img mode.
+    This function loads component IDs that users want to track in addition to default ones.
+    Returns a list of component IDs that should be tracked for presets.
+    
+    加载txt2img模式的自定义跟踪组件ID。
+    此函数加载用户想要跟踪的组件ID，除了默认的组件之外。
+    返回应该为预设跟踪的组件ID列表。
+    """
     type_name = EnumTypeName.txt2img
 
     # config file not found
     # First time running the extension or it was deleted, so fill it with default values
+    # 配置文件未找到
+    # 第一次运行扩展或文件被删除，所以用默认值填充
     txt2img_custom_tracked_components_default_text = f"""# Put custom {type_name} tracked component IDs here. This will allow those fields to be saved as a config preset.
 # Lines starting with a # are ignored.
 # Component IDs can be found in the HTML (id="..."), in modules/ui.py (elem_id="..."), or in an extensions python code. IDs like "component-5890" won't work because the number at the end will change each startup.
@@ -256,10 +276,21 @@ def load_txt2img_custom_tracked_component_ids() -> list[str]:
 
 
 def load_img2img_custom_tracked_component_ids() -> list[str]:
+    """
+    Load custom tracked component IDs for img2img mode.
+    This function loads component IDs that users want to track in addition to default ones.
+    Returns a list of component IDs that should be tracked for presets.
+    
+    加载img2img模式的自定义跟踪组件ID。
+    此函数加载用户想要跟踪的组件ID，除了默认的组件之外。
+    返回应该为预设跟踪的组件ID列表。
+    """
     type_name = EnumTypeName.img2img
 
     # config file not found
     # First time running the extension or it was deleted, so fill it with default values
+    # 配置文件未找到
+    # 第一次运行扩展或文件被删除，所以用默认值填充
     img2img_custom_tracked_components_default_text = f"""# Put custom {type_name} tracked component IDs here. This will allow those fields to be saved as a config preset.
 # Lines starting with a # are ignored.
 # Component IDs can be found in the HTML (id="..."), in modules/ui.py (elem_id="..."), or in an extensions python code. IDs like "component-5890" won't work because the number at the end will change each startup.
@@ -548,6 +579,15 @@ def load_img2img_custom_tracked_component_ids() -> list[str]:
 
 
 def load_txt2img_config_file():
+    """
+    Load txt2img configuration presets from JSON file.
+    If file doesn't exist or is corrupted, creates default presets.
+    Returns a dictionary containing all txt2img configuration presets.
+    
+    从JSON文件加载txt2img配置预设。
+    如果文件不存在或损坏，创建默认预设。
+    返回包含所有txt2img配置预设的字典。
+    """
     try:
         with open(f"{BASEDIR}/{CONFIG_TXT2IMG_FILE_NAME}") as file:
             txt2img_config_presets = json.load(file)
@@ -555,6 +595,8 @@ def load_txt2img_config_file():
     except (FileNotFoundError, JSONDecodeError) as e:    #JSONDecodeError can happen and prevent the Web UI from loading if the json file is malformed
         # txt2img config file not found
         # First time running the extension or it was deleted, so fill it with default values
+        # txt2img配置文件未找到
+        # 第一次运行扩展或文件被删除，所以用默认值填充
 
         # Note: "txt2img_enable_hr" was changed to "txt2img_hr-checkbox" in A1111 1.6.0 (8/31/2023), but we keep it
         # as "txt2img_enable_hr" in the config file so that newer version of Config Presets will work with older
@@ -674,6 +716,15 @@ def load_txt2img_config_file():
 
 
 def load_img2img_config_file():
+    """
+    Load img2img configuration presets from JSON file.
+    If file doesn't exist or is corrupted, creates default presets.
+    Returns a dictionary containing all img2img configuration presets.
+    
+    从JSON文件加载img2img配置预设。
+    如果文件不存在或损坏，创建默认预设。
+    返回包含所有img2img配置预设的字典。
+    """
     try:
         with open(f"{BASEDIR}/{CONFIG_IMG2IMG_FILE_NAME}") as file:
             img2img_config_presets = json.load(file)
@@ -682,6 +733,8 @@ def load_img2img_config_file():
     except (FileNotFoundError, JSONDecodeError) as e:  # JSONDecodeError can happen and prevent the Web UI from loading if the json file is malformed
         # img2img config file not found
         # First time running the extension or it was deleted, so fill it with default values
+        # img2img配置文件未找到
+        # 第一次运行扩展或文件被删除，所以用默认值填充
         img2img_config_presets = {
             "None": {},
             "Low denoising ------- denoising: 0.25, steps: 20, DPM++ 2M": {
@@ -731,6 +784,9 @@ def load_img2img_config_file():
 # workaround function for not being able to select new dropdown values after new choices are added to the dropdown in Gradio v3.28.1 (Automatic1111 v1.1.0)
 # it's possible they will fix this in Gradio v4
 # see: https://github.com/Zyin055/Config-Presets/pull/41
+# 解决方案函数，用于在Gradio v3.28.1（Automatic1111 v1.1.0）中向下拉菜单添加新选项后无法选择新值的问题
+# 可能在Gradio v4中会修复此问题
+# 参见：https://github.com/Zyin055/Config-Presets/pull/41
 #def get_config_preset_dropdown_choices(new_config_presets) -> list[str]:
 def get_config_preset_dropdown_choices(new_config_presets: list[str]) -> list[str]:
     new_choices = []
@@ -744,13 +800,22 @@ def get_config_preset_dropdown_choices(new_config_presets: list[str]) -> list[st
 
 
 def dict_synonyms(d, lsyn):
-    """Adds synonyms to keys in a given dictionary.
+    """
+    Adds synonyms to keys in a given dictionary.
     
     lsyn = [(key1,key2..), (key3,key4..) ...]
     Key2 will receive the value of key1 if it exists and vice versa.
     If both key3 and key4 exist, then they'll keep their old values.
     If two keys have values and a third doesn't, then it will be assigned to one of the two randomly.
     One liner partly written by a chatbot.
+    
+    为给定字典中的键添加同义词。
+    
+    lsyn = [(key1,key2..), (key3,key4..) ...]
+    如果key1存在，key2将接收key1的值，反之亦然。
+    如果key3和key4都存在，它们将保持旧值。
+    如果两个键有值而第三个没有，那么它将被随机分配给其中一个。
+    单行代码部分由聊天机器人编写。
     """
     d2 = {key: d[existing_key] # Get existing value.
           for syn in lsyn # Loop over synonyms.
@@ -762,15 +827,25 @@ def dict_synonyms(d, lsyn):
 
 
 class Script(scripts.Script):
+    """
+    Main Script class for the Config-Presets extension.
+    This class handles the UI components and logic for saving/loading configuration presets.
+    
+    Config-Presets扩展的主Script类。
+    此类处理用于保存/加载配置预设的UI组件和逻辑。
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Load custom tracked components
+        # 加载自定义跟踪组件
         txt2img_custom_tracked_components_ids = load_txt2img_custom_tracked_component_ids()
         img2img_custom_tracked_components_ids = load_img2img_custom_tracked_component_ids()
 
 
+        # These are the settings from the UI that are saved for each preset
+        # 这些是每个预设保存的UI设置
         # These are the settings from the UI that are saved for each preset
         self.txt2img_component_ids = [
             "txt2img_sampling",
@@ -837,6 +912,9 @@ class Script(scripts.Script):
         # Optional IDs don't crash the extension if no associated component is found.
         # These could be legacy IDs from older versions of the Web UI/extensions, or IDs from another UI (Vlad's SD.Next).
         # IDs put here also need to be put in the above txt2img_component_ids and img2img_component_ids arrays.
+        # 可选ID在找不到关联组件时不会导致扩展崩溃。
+        # 这些可能是Web UI/扩展旧版本的遗留ID，或来自其他UI（Vlad的SD.Next）的ID。
+        # 放在这里的ID也需要放入上面的txt2img_component_ids和img2img_component_ids数组中。
         self.txt2img_optional_ids = [
             "txt2img_restore_faces",    # removed in A1111 1.6.0
             "txt2img_enable_hr",        # removed in A1111 1.6.0, and replaced in Vlad's SD.Next
@@ -884,6 +962,7 @@ class Script(scripts.Script):
         ]
 
         # Synonymous IDs are interchangeable at load time.
+        # 同义词ID在加载时可以互换。
         self.synonym_ids = [
             ("txt2img_hires_steps", "txt2img_steps_alt"),                       # Vlad's SD.Next Hires fix steps
             ("txt2img_enable_hr", "txt2img_show_second_pass"),                  # Vlad's SD.Next Hires fix enable
@@ -938,24 +1017,43 @@ class Script(scripts.Script):
         ]
         
         # Mapping between component labels and the actual components in ui.py
+        # 组件标签与ui.py中实际组件之间的映射
         self.txt2img_component_map = {k: None for k in self.txt2img_component_ids}  # gets filled up in the after_component() method
         self.img2img_component_map = {k: None for k in self.img2img_component_ids}  # gets filled up in the after_component() method
 
         # Load txt2img and img2img config files
+        # 加载txt2img和img2img配置文件
         self.txt2img_config_presets = load_txt2img_config_file()
         self.img2img_config_presets = load_img2img_config_file()
 
 
 
     def title(self):
+        """
+        Return the title of the script shown in the UI.
+        返回在UI中显示的脚本标题
+        """
         return "Config Presets"
 
     def show(self, is_img2img):
+        """
+        Return when this script should be visible. AlwaysVisible hides it from the Scripts dropdown.
+        返回脚本应该何时可见。AlwaysVisible将其从Scripts下拉菜单中隐藏
+        """
         return scripts.AlwaysVisible    # hide this script in the Scripts dropdown
 
     def after_component(self, component, **kwargs):
+        """
+        Called after each UI component is created.
+        This is where we build our preset management UI and hook into existing components.
+        
+        在每个UI组件创建后调用。
+        这里我们构建预设管理UI并连接到现有组件。
+        """
         # to generalize the code, detect if we are in txt2img tab or img2img tab, and then use the corresponding self variables
         # so we can use the same code for both tabs
+        # 为了通用化代码，检测我们是在txt2img标签页还是img2img标签页，然后使用相应的self变量
+        # 这样我们可以为两个标签页使用相同的代码
         component_map = None
         component_ids = None
         config_file_name = None
@@ -981,11 +1079,17 @@ class Script(scripts.Script):
             #print(f"[Config-Presets][DEBUG]: found component: {component.elem_id} {component}")
 
         #if component.elem_id == "script_list": #bottom of the script dropdown
+        #脚本下拉菜单底部
         #if component.elem_id == "txt2img_style2_index": #doesn't work, need to be added after all the components we edit are loaded
+        #不起作用，需要在我们要编辑的所有组件加载后添加
         #if component.elem_id == "open_folder": #bottom of the image gallery
+        #图片库底部
         #if component.elem_id == "txt2img_results" or component.elem_id == "img2img_results": #bottom of the image gallery, doesn't work
+        #图片库底部，不起作用
         #if component.elem_id == "txt2img_gallery_container" or component.elem_id == "img2img_gallery_container": #bottom of the image gallery, doesn't work
+        #图片库底部，不起作用
         if component.elem_id == "txt2img_generation_info_button" or component.elem_id == "img2img_generation_info_button": #very bottom of the txt2img/img2img image gallery
+            #txt2img/img2img图片库的最底部
 
             #print("Creating dropdown values...")
             #print("key/value pairs in component_map:")
@@ -996,12 +1100,15 @@ class Script(scripts.Script):
 
             # protect against None type components to prevent bricking the UI
             # this check needs to happen after optional_ids are accounted for
+            # 防止None类型组件导致UI崩溃
+            # 此检查需要在考虑optional_ids后进行
             for component_name, component in component_map.items():
                 if component is None:
                     log_error(f"The {'txt2img' if self.is_txt2img else 'img2img'} component '{component_name}' could not be processed. This may be because you are running an outdated version of the Config-Presets extension, you included a component ID in the custom tracked components config file that does not exist, it no longer exists (if you updated an extension or Automatic1111), or is an invalid component (if this is the case, you need to manually edit the config file at {BASEDIR}\\{custom_tracked_components_config_file_name} or just delete it so it resets to defaults). This extension will not work until this issue is resolved.")
                     return
 
             # Mark components with type "index" to be transformed
+            # 标记类型为"index"的组件以进行转换
             index_type_components = []
             for component in component_map.values():
                 #print(component)
@@ -1029,6 +1136,8 @@ class Script(scripts.Script):
                                                     interactive=True,
                                                     elem_id="script_config_preset_fields_to_save",
                                                     ).unrender() #we need to define this early on so that it can be used as an input for another function
+            # 复选框组值，默认选中所有复选框
+            # 复选框组，用于选择要保存的字段
 
             with gr.Box(elem_id="config_preset_wrapper_txt2img" if self.is_txt2img else "config_preset_wrapper_img2img"):
                 with gr.Row(elem_id="config_preset_dropdown_row") as dropdown_row:
@@ -1069,6 +1178,12 @@ class Script(scripts.Script):
                                     #   to
                                     #   [('Inpaint masked', 'Inpaint masked'), ('Inpaint not masked', 'Inpaint not masked')]
                                     # Using a type == tuple check here will ensure compatibility with the older versions.
+                                    # A1111 1.6.0将单选按钮值更改为元组。
+                                    # 例如，对于"img2img_mask_mode"组件，它从：
+                                    #   ['Inpaint masked', 'Inpaint not masked']
+                                    #   更改为
+                                    #   [('Inpaint masked', 'Inpaint masked'), ('Inpaint not masked', 'Inpaint not masked')]
+                                    # 在这里使用type == tuple检查将确保与旧版本的兼容性。
                                     if type(current_components[component_name]) == tuple:
                                         current_components[component_name] = current_components[component_name][0]
 
@@ -1102,6 +1217,11 @@ class Script(scripts.Script):
 
 
                     def delete_selected_preset(config_preset_name):
+                        """
+                        Delete the selected preset from the configuration.
+                        
+                        删除选中的预设配置。
+                        """
                         if config_preset_name in config_presets.keys():
                             del config_presets[config_preset_name]
                             print(f'[Config-Presets] deleted: "{config_preset_name}"')
@@ -1115,6 +1235,11 @@ class Script(scripts.Script):
                         return gr.Dropdown.update() # do nothing if no value is selected
                     
                     def refresh_dropdown_button_click():
+                        """
+                        Refresh the dropdown by reloading configuration presets from files.
+                        
+                        通过从文件重新加载配置预设来刷新下拉菜单。
+                        """
                         if self.is_txt2img:
                             self.txt2img_config_presets = load_txt2img_config_file()
                             #new_config_presets = self.txt2img_config_presets
@@ -1151,6 +1276,11 @@ class Script(scripts.Script):
                     )
 
                     def open_file(f):
+                        """
+                        Open a file using the system's default application.
+                        
+                        使用系统默认应用程序打开文件。
+                        """
                         path = os.path.normpath(f)
 
                         if not os.path.exists(path):
@@ -1158,6 +1288,7 @@ class Script(scripts.Script):
                             return
 
                         # copied from ui.py:538
+                        # 从ui.py:538复制
                         if platform.system() == "Windows":
                             os.startfile(path)
                         elif platform.system() == "Darwin":
@@ -1232,18 +1363,37 @@ class Script(scripts.Script):
                             )
 
                             def add_remove_button_click(save_textbox_text: str, config_preset_dropdown_value: str):
+                                """
+                                Handle add/remove button click event.
+                                Auto-populate textbox if empty when a preset is selected.
+                                
+                                处理添加/删除按钮点击事件。
+                                如果选择了预设且文本框为空，则自动填充文本框。
+                                """
                                 if save_textbox_text == "" or save_textbox_text is None:
                                     if config_preset_dropdown_value != "" and config_preset_dropdown_value is not None:
                                         # save textbox is empty, and we have a dropdown value selected
                                         # auto-populate the save textbox so it's easier to overwrite existing config preset
+                                        # 保存文本框为空，并且我们选择了下拉菜单值
+                                        # 自动填充保存文本框，以便更容易覆盖现有配置预设
                                         return gr.Textbox.update(value=config_preset_dropdown_value)
                                 return gr.Textbox.update()
 
 
                             def expand_edit_ui():
+                                """
+                                Expand the edit UI by showing relevant buttons and hiding others.
+                                
+                                展开编辑UI，显示相关按钮并隐藏其他按钮。
+                                """
                                 return gr.Row.update(visible=True), gr.Button.update(visible=True), gr.Button.update(visible=False), gr.Button.update(visible=False), gr.Button.update(visible=True), gr.Button.update(visible=True), gr.Button.update(visible=True)
 
                             def collapse_edit_ui():
+                                """
+                                Collapse the edit UI by hiding relevant buttons and showing others.
+                                
+                                折叠编辑UI，隐藏相关按钮并显示其他按钮。
+                                """
                                 return gr.Row.update(visible=False), gr.Button.update(visible=False), gr.Button.update(visible=True), gr.Button.update(visible=True), gr.Button.update(visible=False), gr.Button.update(visible=False), gr.Button.update(visible=False)
 
                             add_remove_button.click(
@@ -1282,9 +1432,19 @@ class Script(scripts.Script):
 
 
     def ui(self, is_img2img):
+        """
+        Placeholder for UI creation. Not used in this extension.
+        
+        UI创建的占位符。此扩展中未使用。
+        """
         pass
 
     def run(self, p, *args):
+        """
+        Placeholder for script execution. Not used in this extension.
+        
+        脚本执行的占位符。此扩展中未使用。
+        """
         pass
 
 
@@ -1300,8 +1460,10 @@ def save_config(config_presets, component_map, config_file_name):
 
         if new_setting_name == "":
             return gr.Dropdown.update(), "" # do nothing if no label entered in textbox
+            # 如果在文本框中没有输入标签，则不执行任何操作
 
         new_setting_map = {}    # dict[str, Any]    {"txt2img_steps": 10, ...}
+        # 新设置映射字典 - 字符串到任意类型的映射，格式如：{"txt2img_steps": 10, ...}
 
         #print(f"component_map={component_map}")
         #print(f"new_setting={new_setting}")
@@ -1310,6 +1472,7 @@ def save_config(config_presets, component_map, config_file_name):
 
             if component_id not in fields_to_save_list:
                 #print(f"[Config-Presets] New preset '{new_setting_name}' will not include {component_id}")
+                # print(f"[Config-Presets] 新预设'{new_setting_name}'将不包含{component_id}")
                 continue
 
             if component_map[component_id] is not None:
@@ -1318,6 +1481,7 @@ def save_config(config_presets, component_map, config_file_name):
                 if isinstance(new_value, str) and (component_id == "txt2img_sampling" or component_id == "img2img_sampling" or component_id == "hr_sampler"):
                     if isinstance(new_value, str):  # in A1111 1.6.0(?) the sampler is now returned as a string instead of an integer
                         if new_value == "Use same sampler": # the hr_sampler dropdown has a "Use same sampler" value that doesn't exist in the samplers_map
+                            # hr_sampler下拉菜单有一个"Use same sampler"值，在samplers_map中不存在
                             new_setting_map[component_id] = new_value
                         else:
                             new_setting_map[component_id] = modules.sd_samplers.samplers_map[new_value.lower()]
@@ -1326,6 +1490,8 @@ def save_config(config_presets, component_map, config_file_name):
                     else:
                         log_error(f"Unable get sampler name for component: {component_id}")
                         log_error(f"Unknown data type for sampler: {new_value}")
+                        # 无法获取组件的采样器名称：{component_id}
+                        # 采样器的未知数据类型：{new_value}
                 else:
                     new_setting_map[component_id] = new_value
 
@@ -1335,6 +1501,8 @@ def save_config(config_presets, component_map, config_file_name):
 
         config_presets.update({new_setting_name: new_setting_map})
         write_json_to_file(config_presets, config_file_name)
+        # 使用新设置映射更新配置预设
+        # 将配置预设写入JSON文件
 
         # print(f"self.txt2img_config_preset_dropdown.choices before =\n{self.txt2img_config_preset_dropdown.choices}")
         # self.txt2img_config_preset_dropdown.choices = list(config_presets.keys())
@@ -1342,20 +1510,34 @@ def save_config(config_presets, component_map, config_file_name):
 
         print(f"[Config-Presets] Added new preset: {new_setting_name}")
         #print(f"[Config-Presets] Restarting UI...") # done in _js
+        # print(f"[Config-Presets] 添加新预设：{new_setting_name}")
+        # print(f"[Config-Presets] 重启UI...") # 在_js中完成
         return gr.Dropdown.update(value=new_setting_name,   # update the dropdown with the new config preset
                                   #choices=list(config_presets.keys()),
                                   choices=get_config_preset_dropdown_choices(config_presets.keys()),
                                   ), "" # clear the 'New preset name' textbox
+                                  # 使用新的配置预设更新下拉菜单
+                                  # 清除"新预设名称"文本框
 
     return func
 
 
 def write_json_to_file(json_data, file_name: str):
+    """
+    Write JSON data to a file with proper indentation.
+    
+    将JSON数据以适当的缩进写入文件。
+    """
     with open(f"{BASEDIR}/{file_name}", "w") as file:
         file.write(json.dumps(json_data, indent=4))
 
 
 def replace_text_in_file(old: str, new: str, file_name: str):
+    """
+    Replace text in a file with new text.
+    
+    用新文本替换文件中的文本。
+    """
     with open(f"{BASEDIR}/{file_name}", "r") as file:
         content = file.read()
 
