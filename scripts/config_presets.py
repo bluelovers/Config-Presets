@@ -4,13 +4,11 @@ import traceback
 from typing import Any
 import modules.scripts as scripts  # pyright: ignore[reportMissingImports]
 import gradio as gr  # pyright: ignore[reportMissingImports]
-import os  # pyright: ignore[reportUnusedImport]
-import platform  # pyright: ignore[reportUnusedImport]
-import subprocess as sp  # pyright: ignore[reportUnusedImport]
 
 from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImports, reportUnknownVariableType]
 from sd_config_presets.config_components import load_custom_tracked_component_ids, EnumTypeName, log, log_error, log_critical_error, load_config_file, write_json_to_file
 from sd_config_presets.sd_components import save_config, get_config_preset_dropdown_choices
+from sd_config_presets.utils import open_file_in_system_app
 
 # Base directory path for the Config-Presets extension
 # Contains the full path to the extension folder
@@ -1240,26 +1238,7 @@ class Script(scripts.Script):
                         outputs=[config_preset_dropdown],
                     )
 
-                    def open_file(f):
-                        """
-                        Open a file using the system's default application.
-                        
-                        使用系统默认应用程序打开文件。
-                        """
-                        path = os.path.normpath(f)
 
-                        if not os.path.exists(path):
-                            log(f'The file at "{path}" does not exist.')
-                            return
-
-                        # copied from ui.py:538
-                        # 从ui.py:538复制
-                        if platform.system() == "Windows":
-                            os.startfile(path)
-                        elif platform.system() == "Darwin":
-                            sp.Popen(["open", path])
-                        else:
-                            sp.Popen(["xdg-open", path])
 
                     open_config_file_button = ToolButton(  # pyright: ignore[reportUnknownVariableType]
                         value="📂",
@@ -1267,7 +1246,7 @@ class Script(scripts.Script):
                         visible=False,
                     )
                     open_config_file_button.click(  # pyright: ignore[reportUnknownMemberType]
-                        fn=lambda: open_file(config_file_name),
+                        fn=lambda: open_file_in_system_app(config_file_name),
                         inputs=[],
                         outputs=[],
                     )
@@ -1388,7 +1367,7 @@ class Script(scripts.Script):
                                     elem_id="script_config_preset_open_custom_tracked_components_config",
                                 )
                                 open_custom_tracked_components_config_file_button.click(
-                                    fn=lambda: open_file(custom_tracked_components_config_file_name),
+                                    fn=lambda: open_file_in_system_app(custom_tracked_components_config_file_name),
                                     inputs=[],
                                     outputs=[],
                                 )
