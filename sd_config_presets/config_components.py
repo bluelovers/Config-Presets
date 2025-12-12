@@ -67,8 +67,10 @@ def log_critical_error(text: str):
     """
     print(f"[ERROR][CRITICAL][Config Presets] {text}")
 
+
 def log_debug(text: str):
     print(f"[DEBUG][Config Presets] {text}")
+
 
 def _parse_config_components(file: list[str] | IO[str], components_ids: list[str] = []) -> list[str]:  # pyright: ignore[reportCallInDefaultInitializer]
     """
@@ -192,18 +194,6 @@ def write_json_to_file(json_data: Any, file_path: str):  # pyright: ignore[repor
     """
     with open(file_path, "w") as file:
         file.write(json.dumps(json_data, indent=2))  # pyright: ignore[reportUnusedCallResult]
-
-def _replace_text_in_file(old: str, new: str, file_path: str):  # pyright: ignore[reportUnusedFunction]
-    """
-    Replace text in a file with new text.
-    
-    用新文本替换文件中的文本。
-    """
-    with open(file_path, "r") as file:
-        content = file.read()
-
-    with open(file_path, "w") as file:
-        file.write(content.replace(old, new))  # pyright: ignore[reportUnusedCallResult]
 
 def load_config_file(file_path: str, type_name: EnumTypeName, default_presets: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:  # pyright: ignore[reportExplicitAny]
     """

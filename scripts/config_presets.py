@@ -1,7 +1,7 @@
 # Import necessary modules for Stable Diffusion Web UI extension
 # 导入Stable Diffusion Web UI扩展所需的模块
 import traceback
-import modules.sd_samplers  # pyright: ignore[reportMissingImports]
+from typing import Any
 import modules.scripts as scripts  # pyright: ignore[reportMissingImports]
 import gradio as gr  # pyright: ignore[reportMissingImports]
 import os  # pyright: ignore[reportUnusedImport]
@@ -9,8 +9,8 @@ import platform  # pyright: ignore[reportUnusedImport]
 import subprocess as sp  # pyright: ignore[reportUnusedImport]
 
 from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImports, reportUnknownVariableType]
-from sd_config_presets.config_components import load_custom_tracked_component_ids, EnumTypeName, log, log_error, log_critical_error, load_config_file
-
+from sd_config_presets.config_components import load_custom_tracked_component_ids, EnumTypeName, log, log_error, log_critical_error, load_config_file, write_json_to_file
+from sd_config_presets.sd_components import save_config, get_config_preset_dropdown_choices
 
 # Base directory path for the Config-Presets extension
 # Contains the full path to the extension folder
@@ -20,10 +20,10 @@ BASEDIR: str = scripts.basedir()     #C:\path\to\Stable Diffusion\extensions\Con
 
 # Configuration file names for different components and modes
 # 不同组件和模式的配置文件名
-CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME = "config-txt2img-custom-tracked-components.txt"
-CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME = "config-img2img-custom-tracked-components.txt"
-CONFIG_TXT2IMG_FILE_NAME = "config-txt2img.json"
-CONFIG_IMG2IMG_FILE_NAME = "config-img2img.json"
+CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME = f"{BASEDIR}/config-txt2img-custom-tracked-components.txt"
+CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME = f"{BASEDIR}/config-img2img-custom-tracked-components.txt"
+CONFIG_TXT2IMG_FILE_NAME = f"{BASEDIR}/config-txt2img.json"
+CONFIG_IMG2IMG_FILE_NAME = f"{BASEDIR}/config-img2img.json"
 
 
 def load_txt2img_custom_tracked_component_ids() -> list[str]:
@@ -271,7 +271,7 @@ def load_txt2img_custom_tracked_component_ids() -> list[str]:
 #script_{type_name}_adetailer_ad_controlnet_guidance_end_2nd
 """
 
-    return load_custom_tracked_component_ids(f"{BASEDIR}/{CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME}", EnumTypeName.txt2img, txt2img_custom_tracked_components_default_text)
+    return load_custom_tracked_component_ids(CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME, EnumTypeName.txt2img, txt2img_custom_tracked_components_default_text)
 
 
 def load_img2img_custom_tracked_component_ids() -> list[str]:
@@ -574,7 +574,7 @@ def load_img2img_custom_tracked_component_ids() -> list[str]:
 #ultimateupscale_save_seams_fix_image
 """
 
-    return load_custom_tracked_component_ids(f"{BASEDIR}/{CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME}", EnumTypeName.img2img, img2img_custom_tracked_components_default_text)
+    return load_custom_tracked_component_ids(CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME, EnumTypeName.img2img, img2img_custom_tracked_components_default_text)
 
 
 def load_txt2img_config_file():
@@ -702,7 +702,7 @@ def load_txt2img_config_file():
 
     # Call the generic _load_config_file function with specific parameters
     # 调用通用的_load_config_file函数，传入特定参数
-    return load_config_file(f"{BASEDIR}/{CONFIG_TXT2IMG_FILE_NAME}", type_name, txt2img_config_presets)
+    return load_config_file(CONFIG_TXT2IMG_FILE_NAME, type_name, txt2img_config_presets)
 
 
 def load_img2img_config_file():
@@ -757,24 +757,7 @@ def load_img2img_config_file():
 
     # Call the generic _load_config_file function with specific parameters
     # 调用通用的_load_config_file函数，传入特定参数
-    return load_config_file(f"{BASEDIR}/{CONFIG_IMG2IMG_FILE_NAME}", type_name, img2img_config_presets)
-
-# workaround function for not being able to select new dropdown values after new choices are added to the dropdown in Gradio v3.28.1 (Automatic1111 v1.1.0)
-# it's possible they will fix this in Gradio v4
-# see: https://github.com/Zyin055/Config-Presets/pull/41
-# 解决方案函数，用于在Gradio v3.28.1（Automatic1111 v1.1.0）中向下拉菜单添加新选项后无法选择新值的问题
-# 可能在Gradio v4中会修复此问题
-# 参见：https://github.com/Zyin055/Config-Presets/pull/41
-#def get_config_preset_dropdown_choices(new_config_presets) -> list[str]:
-def get_config_preset_dropdown_choices(new_config_presets: list[str]) -> list[str]:
-    new_choices = []
-    if len(new_config_presets) > 0:
-        # if isinstance(new_config_presets, dict):
-        #     new_choices.extend(new_config_presets.keys())
-        # else: # List assumed.
-        #     new_choices.extend(new_config_presets)
-        new_choices.extend(new_config_presets)
-    return new_choices
+    return load_config_file(CONFIG_IMG2IMG_FILE_NAME, type_name, img2img_config_presets)
 
 
 def dict_synonyms(d, lsyn):
@@ -1032,8 +1015,8 @@ class Script(scripts.Script):
         # so we can use the same code for both tabs
         # 为了通用化代码，检测我们是在txt2img标签页还是img2img标签页，然后使用相应的self变量
         # 这样我们可以为两个标签页使用相同的代码
-        component_map = None
-        component_ids = None
+        component_map: dict[str, Any] = None  # pyright: ignore[reportAssignmentType, reportExplicitAny]
+        component_ids: list[str] = None  # pyright: ignore[reportAssignmentType]
         config_file_name = None
         custom_tracked_components_config_file_name = None
         optional_ids = None
@@ -1082,7 +1065,7 @@ class Script(scripts.Script):
             # 此检查需要在考虑optional_ids后进行
             for component_name, component in component_map.items():
                 if component is None:
-                    log_error(f"The {'txt2img' if self.is_txt2img else 'img2img'} component '{component_name}' could not be processed. This may be because you are running an outdated version of the Config-Presets extension, you included a component ID in the custom tracked components config file that does not exist, it no longer exists (if you updated an extension or Automatic1111), or is an invalid component (if this is the case, you need to manually edit the config file at {BASEDIR}\\{custom_tracked_components_config_file_name} or just delete it so it resets to defaults). This extension will not work until this issue is resolved.")
+                    log_error(f"The {'txt2img' if self.is_txt2img else 'img2img'} component '{component_name}' could not be processed. This may be because you are running an outdated version of the Config-Presets extension, you included a component ID in the custom tracked components config file that does not exist, it no longer exists (if you updated an extension or Automatic1111), or is an invalid component (if this is the case, you need to manually edit the config file at {custom_tracked_components_config_file_name} or just delete it so it resets to defaults). This extension will not work until this issue is resolved.")
                     return
 
             # Mark components with type "index" to be transformed
@@ -1095,7 +1078,7 @@ class Script(scripts.Script):
                     index_type_components.append(component.elem_id)
 
             preset_values = []
-            config_presets: dict[str, any] = None
+            config_presets: dict[str, Any] = None  # pyright: ignore[reportExplicitAny, reportAssignmentType]
             if self.is_txt2img:
                 config_presets = self.txt2img_config_presets
             else:
@@ -1194,7 +1177,7 @@ class Script(scripts.Script):
                         log_critical_error("The Config-Presets extension encountered a fatal error. A component required by this extension no longer exists in the Web UI. This is most likely due to the A1111 Web UI being updated. Try updating the Config-Presets extension. If that doesn't work, please post a bug report at https://github.com/Zyin055/Config-Presets/issues and delete your extensions/Config-Presets folder until an update is published.")
 
 
-                    def delete_selected_preset(config_preset_name):
+                    def delete_selected_preset(config_preset_name: str):  # pyright: ignore[reportUnknownParameterType]
                         """
                         Delete the selected preset from the configuration.
                         
@@ -1202,15 +1185,16 @@ class Script(scripts.Script):
                         """
                         if config_preset_name in config_presets.keys():
                             del config_presets[config_preset_name]
-                            log(f"deleted: "{config_preset_name}"')
+                            log(f"deleted: \"{config_preset_name}\"")
 
-                            write_json_to_file(config_presets, f"{BASEDIR}/{config_file_name}")
+                            write_json_to_file(config_presets, config_file_name)
 
                             preset_keys = list(config_presets.keys())
-                            return gr.Dropdown.update(value=preset_keys[len(preset_keys)-1],
+                            return gr.Dropdown.update(value=preset_keys[len(preset_keys)-1],  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
                                                         choices=get_config_preset_dropdown_choices(preset_keys),
                                                         )
-                        return gr.Dropdown.update() # do nothing if no value is selected
+                        # do nothing if no value is selected
+                        return gr.Dropdown.update()  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
                     
                     def refresh_dropdown_button_click():
                         """
@@ -1229,25 +1213,25 @@ class Script(scripts.Script):
                             config_presets.update(self.img2img_config_presets)
                             preset_values: list[str] = list(self.img2img_config_presets.keys())
                         
-                        return gr.Dropdown.update(choices=get_config_preset_dropdown_choices(preset_values))
+                        return gr.Dropdown.update(choices=get_config_preset_dropdown_choices(preset_values))  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
 
-                    refresh_dropdown_button = ToolButton(
+                    refresh_dropdown_button = ToolButton(  # pyright: ignore[reportUnknownVariableType]
                         value="🔄",
                         elem_id="script_config_preset_refresh_dropdown_button",
                         visible=False,
                     )
-                    refresh_dropdown_button.click(
+                    refresh_dropdown_button.click(  # pyright: ignore[reportUnknownMemberType]
                         fn=refresh_dropdown_button_click,
                         inputs=[],
                         outputs=[config_preset_dropdown],
                     )
 
-                    trash_button = ToolButton(
+                    trash_button = ToolButton(  # pyright: ignore[reportUnknownVariableType]
                         value="🗑️",
                         elem_id="script_config_preset_trash_button",
                         visible=False,
                     )
-                    trash_button.click(
+                    trash_button.click(  # pyright: ignore[reportUnknownMemberType]
                         fn=delete_selected_preset,
                         inputs=[config_preset_dropdown],
                         outputs=[config_preset_dropdown],
@@ -1262,7 +1246,7 @@ class Script(scripts.Script):
                         path = os.path.normpath(f)
 
                         if not os.path.exists(path):
-                            log(f"The file at "{path}" does not exist.')
+                            log(f'The file at "{path}" does not exist.')
                             return
 
                         # copied from ui.py:538
@@ -1274,13 +1258,13 @@ class Script(scripts.Script):
                         else:
                             sp.Popen(["xdg-open", path])
 
-                    open_config_file_button = ToolButton(
+                    open_config_file_button = ToolButton(  # pyright: ignore[reportUnknownVariableType]
                         value="📂",
                         elem_id="script_config_preset_open_config_file_button",
                         visible=False,
                     )
-                    open_config_file_button.click(
-                        fn=lambda: open_file(f"{BASEDIR}/{config_file_name}"),
+                    open_config_file_button.click(  # pyright: ignore[reportUnknownMemberType]
+                        fn=lambda: open_file(config_file_name),
                         inputs=[],
                         outputs=[],
                     )
@@ -1401,7 +1385,7 @@ class Script(scripts.Script):
                                     elem_id="script_config_preset_open_custom_tracked_components_config",
                                 )
                                 open_custom_tracked_components_config_file_button.click(
-                                    fn=lambda: open_file(f"{BASEDIR}/{custom_tracked_components_config_file_name}"),
+                                    fn=lambda: open_file(custom_tracked_components_config_file_name),
                                     inputs=[],
                                     outputs=[],
                                 )
@@ -1409,7 +1393,7 @@ class Script(scripts.Script):
                                 pass
 
 
-    def ui(self, is_img2img):
+    def ui(self, is_img2img: bool):
         """
         Placeholder for UI creation. Not used in this extension.
         
@@ -1424,78 +1408,4 @@ class Script(scripts.Script):
         脚本执行的占位符。此扩展中未使用。
         """
         pass
-
-
-# Save the current values on the UI to a new entry in the config file
-def save_config(config_presets, component_map, config_file_name):
-    #log_debug("save_config()")
-    # closure keeps path in memory, it's a hack to get around how click or change expects values to be formatted
-    def func(new_setting_name, fields_to_save_list, *new_setting):
-        #log_debug(f"save_config() func() new_setting_name={new_setting_name} *new_setting={new_setting}")
-        #log_debug(f"config_presets()={config_presets}")
-        #log_debug(f"component_map()={component_map}")
-        #log_debug(f"config_file_name()={config_file_name}")
-
-        if new_setting_name == "":
-            return gr.Dropdown.update(), "" # do nothing if no label entered in textbox
-            # 如果在文本框中没有输入标签，则不执行任何操作
-
-        new_setting_map = {}    # dict[str, Any]    {"txt2img_steps": 10, ...}
-        # 新设置映射字典 - 字符串到任意类型的映射，格式如：{"txt2img_steps": 10, ...}
-
-        #log_debug(f"component_map={component_map}")
-        #log_debug(f"new_setting={new_setting}")
-
-        for i, component_id in enumerate(component_map.keys()):
-
-            if component_id not in fields_to_save_list:
-                #log(f"New preset '{new_setting_name}' will not include {component_id}")
-                # log(f"新预设'{new_setting_name}'将不包含{component_id}")
-                continue
-
-            if component_map[component_id] is not None:
-                new_value = new_setting[i]  # this gives the index when the component is a dropdown
-
-                if isinstance(new_value, str) and (component_id == "txt2img_sampling" or component_id == "img2img_sampling" or component_id == "hr_sampler"):
-                    if isinstance(new_value, str):  # in A1111 1.6.0(?) the sampler is now returned as a string instead of an integer
-                        if new_value == "Use same sampler": # the hr_sampler dropdown has a "Use same sampler" value that doesn't exist in the samplers_map
-                            # hr_sampler下拉菜单有一个"Use same sampler"值，在samplers_map中不存在
-                            new_setting_map[component_id] = new_value
-                        else:
-                            new_setting_map[component_id] = modules.sd_samplers.samplers_map[new_value.lower()]
-                    elif isinstance(new_value, int):
-                        new_setting_map[component_id] = modules.sd_samplers.samplers[new_value].name
-                    else:
-                        log_error(f"Unable get sampler name for component: {component_id}")
-                        log_error(f"Unknown data type for sampler: {new_value}")
-                        # 无法获取组件的采样器名称：{component_id}
-                        # 采样器的未知数据类型：{new_value}
-                else:
-                    new_setting_map[component_id] = new_value
-
-                #log_debug(f"Saving '{component_id}' as: {new_setting_map[component_id]} ({new_value})")
-
-        #log_debug(f"new_setting_map = {new_setting_map}")
-
-        config_presets.update({new_setting_name: new_setting_map})
-        write_json_to_file(config_presets, f"{BASEDIR}/{config_file_name}")
-        # 使用新设置映射更新配置预设
-        # 将配置预设写入JSON文件
-
-        # log_debug(f"self.txt2img_config_preset_dropdown.choices before =\n{self.txt2img_config_preset_dropdown.choices}")
-        # self.txt2img_config_preset_dropdown.choices = list(config_presets.keys())
-        # log_debug(f"self.txt2img_config_preset_dropdown.choices after =\n{self.txt2img_config_preset_dropdown.choices}")
-
-        log(f"Added new preset: {new_setting_name}")
-        #log(f"Restarting UI...") # done in _js
-        # log(f"添加新预设：{new_setting_name}")
-        # log(f"重启UI...") # 在_js中完成
-        return gr.Dropdown.update(value=new_setting_name,   # update the dropdown with the new config preset
-                                  #choices=list(config_presets.keys()),
-                                  choices=get_config_preset_dropdown_choices(config_presets.keys()),
-                                  ), "" # clear the 'New preset name' textbox
-                                  # 使用新的配置预设更新下拉菜单
-                                  # 清除"新预设名称"文本框
-
-    return func
 
