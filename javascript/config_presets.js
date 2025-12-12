@@ -35,7 +35,7 @@ function config_preset_dropdown_change() {
 */
 /*
 function config_preset_settings_restart_gradio() {
-	console.log('[Config-Presets] Restarting to apply new config preset...')
+	console.log('[Config Presets] Restarting to apply new config preset...')
 	setTimeout(function() {
 		gradioApp().getElementById("settings_restart_gradio").click()
 	}, 1000)

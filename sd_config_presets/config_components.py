@@ -10,8 +10,6 @@ IDs from configuration files and handle logging.
 
 该模块处理txt2img和img2img模式的自定义组件配置的加载和解析。
 它提供了从配置文件读取组件ID和处理日志的工具。
-
-Author: Config-Presets Extension Team
 """
 
 from enum import Enum, unique
@@ -67,6 +65,8 @@ def log_critical_error(text: str):
     """
     print(f"[ERROR][CRITICAL][Config Presets] {text}")
 
+def log_debug(text: str):
+    print(f"[DEBUG][Config Presets] {text}")
 
 def _parse_config_components(file: list[str] | IO[str], components_ids: list[str] = []) -> list[str]:  # pyright: ignore[reportCallInDefaultInitializer]
     """
@@ -102,8 +102,8 @@ def _parse_config_components(file: list[str] | IO[str], components_ids: list[str
         if not line.startswith("#") and line != "":  # ignore lines that start with # or are empty
             # 忽略以#开头的行或空行
             components_ids.append(line)
-            #print(f"Added txt2img custom tracked component: {line}")
-            # print(f"添加txt2img自定义跟踪组件：{line}")
+            # log_debug(f"Added txt2img custom tracked component: {line}")
+            # log_debug(f"添加txt2img自定义跟踪组件：{line}")
     return components_ids
 
 

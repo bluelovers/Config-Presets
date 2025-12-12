@@ -10,7 +10,7 @@ import platform
 import subprocess as sp
 from json import JSONDecodeError
 from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImports, reportUnknownVariableType]
-from sd_config_presets.config_components import load_custom_tracked_component_ids, EnumTypeName, log_error, log_critical_error
+from sd_config_presets.config_components import load_custom_tracked_component_ids, EnumTypeName, log, log_error, log_critical_error
 
 
 # Base directory path for the Config-Presets extension
@@ -705,7 +705,7 @@ def load_txt2img_config_file():
 
         if e.__class__ == FileNotFoundError:
             write_json_to_file(txt2img_config_presets, CONFIG_TXT2IMG_FILE_NAME)
-            print(f"[Config Presets] txt2img config file not found. Created default txt2img config at {BASEDIR}/{CONFIG_TXT2IMG_FILE_NAME}")
+            log(f"txt2img config file not found. Created default txt2img config at {BASEDIR}/{CONFIG_TXT2IMG_FILE_NAME}")
         elif e.__class__ == JSONDecodeError:
             log_error(f"failed to load txt2img config file at {BASEDIR}/{CONFIG_TXT2IMG_FILE_NAME}")
             log_error(f"at line {e.lineno}, col {e.colno}: {e.msg}")
@@ -771,7 +771,7 @@ def load_img2img_config_file():
 
         if e.__class__ == FileNotFoundError:
             write_json_to_file(img2img_config_presets, CONFIG_IMG2IMG_FILE_NAME)
-            print(f"[Config Presets] img2img config file not found. Created default img2img config at {BASEDIR}/{CONFIG_IMG2IMG_FILE_NAME}")
+            log(f"img2img config file not found. Created default img2img config at {BASEDIR}/{CONFIG_IMG2IMG_FILE_NAME}")
         elif e.__class__ == JSONDecodeError:
             log_error(f"failed to load img2img config file at {BASEDIR}/{CONFIG_IMG2IMG_FILE_NAME}")
             log_error(f"at line {e.lineno}, col {e.colno}: {e.msg}")
@@ -1076,7 +1076,7 @@ class Script(scripts.Script):
         #if component.label in self.component_map:
         if component.elem_id in component_map:
             component_map[component.elem_id] = component
-            #print(f"[Config-Presets][DEBUG]: found component: {component.elem_id} {component}")
+            #log_debug(f"found component: {component.elem_id} {component}")
 
         #if component.elem_id == "script_list": #bottom of the script dropdown
         #脚本下拉菜单底部
@@ -1091,8 +1091,8 @@ class Script(scripts.Script):
         if component.elem_id == "txt2img_generation_info_button" or component.elem_id == "img2img_generation_info_button": #very bottom of the txt2img/img2img image gallery
             #txt2img/img2img图片库的最底部
 
-            #print("Creating dropdown values...")
-            #print("key/value pairs in component_map:")
+            #log_debug("Creating dropdown values...")
+            #log_debug("key/value pairs in component_map:")
 
             # before we create the dropdown, we need to check if each component was found successfully to prevent errors from bricking the Web UI
             component_map = {k:v for k,v in component_map.items() if v is not None or k not in optional_ids}    # Cleanse missing optional components with optional_ids
@@ -1111,9 +1111,9 @@ class Script(scripts.Script):
             # 标记类型为"index"的组件以进行转换
             index_type_components = []
             for component in component_map.values():
-                #print(component)
+                #log_debug(component)
                 if getattr(component, "type", "No type attr") == "index":
-                    # print(component.elem_id)
+                    # log_debug(component.elem_id)
                     index_type_components.append(component.elem_id)
 
             preset_values = []
@@ -1126,7 +1126,7 @@ class Script(scripts.Script):
             preset_values: list[str] = list(config_presets.keys())
             # for dropdownValue in config_presets:
             #     preset_values.append(dropdownValue)
-            #     #print(f"Config Presets: added \"{dropdownValue}\"")
+            #     #log(f"added \"{dropdownValue}\"")
 
             fields_checkboxgroup_value = component_ids.copy()
             fields_checkboxgroup = gr.CheckboxGroup(choices=component_ids,
@@ -1159,16 +1159,16 @@ class Script(scripts.Script):
 
                     def config_preset_dropdown_change(dropdown_value, *components_value):
                         config_preset = get_config_preset(dropdown_value)
-                        print(f"[Config-Presets] Changed to: {dropdown_value}")
+                        log(f"Changed to: {dropdown_value}")
 
                         # update component values with user preset
                         current_components = dict(zip(component_map.keys(), components_value))
-                        #print("Components before:", current_components)
+                        #log_debug("Components before:", current_components)
                         current_components.update(config_preset)
 
                         # transform necessary components from index to value
                         for component_name, component_value in current_components.items():
-                            #print(component_name, component_value)
+                            #log_debug(component_name, component_value)
                             if component_name in index_type_components and type(component_value) == int:
                                     current_components[component_name] = component_map[component_name].choices[component_value]
 
@@ -1187,7 +1187,7 @@ class Script(scripts.Script):
                                     if type(current_components[component_name]) == tuple:
                                         current_components[component_name] = current_components[component_name][0]
 
-                        #print("Components after :", current_components)
+                        #log_debug("Components after :", current_components)
 
                         return list(current_components.values())
 
@@ -1224,7 +1224,7 @@ class Script(scripts.Script):
                         """
                         if config_preset_name in config_presets.keys():
                             del config_presets[config_preset_name]
-                            print(f'[Config-Presets] deleted: "{config_preset_name}"')
+                            log(f"deleted: "{config_preset_name}"')
 
                             write_json_to_file(config_presets, config_file_name)
 
@@ -1284,7 +1284,7 @@ class Script(scripts.Script):
                         path = os.path.normpath(f)
 
                         if not os.path.exists(path):
-                            print(f'Config Presets: The file at "{path}" does not exist.')
+                            log(f"The file at "{path}" does not exist.')
                             return
 
                         # copied from ui.py:538
@@ -1450,13 +1450,13 @@ class Script(scripts.Script):
 
 # Save the current values on the UI to a new entry in the config file
 def save_config(config_presets, component_map, config_file_name):
-    #print("save_config()")
+    #log_debug("save_config()")
     # closure keeps path in memory, it's a hack to get around how click or change expects values to be formatted
     def func(new_setting_name, fields_to_save_list, *new_setting):
-        #print(f"save_config() func() new_setting_name={new_setting_name} *new_setting={new_setting}")
-        #print(f"config_presets()={config_presets}")
-        #print(f"component_map()={component_map}")
-        #print(f"config_file_name()={config_file_name}")
+        #log_debug(f"save_config() func() new_setting_name={new_setting_name} *new_setting={new_setting}")
+        #log_debug(f"config_presets()={config_presets}")
+        #log_debug(f"component_map()={component_map}")
+        #log_debug(f"config_file_name()={config_file_name}")
 
         if new_setting_name == "":
             return gr.Dropdown.update(), "" # do nothing if no label entered in textbox
@@ -1465,14 +1465,14 @@ def save_config(config_presets, component_map, config_file_name):
         new_setting_map = {}    # dict[str, Any]    {"txt2img_steps": 10, ...}
         # 新设置映射字典 - 字符串到任意类型的映射，格式如：{"txt2img_steps": 10, ...}
 
-        #print(f"component_map={component_map}")
-        #print(f"new_setting={new_setting}")
+        #log_debug(f"component_map={component_map}")
+        #log_debug(f"new_setting={new_setting}")
 
         for i, component_id in enumerate(component_map.keys()):
 
             if component_id not in fields_to_save_list:
-                #print(f"[Config-Presets] New preset '{new_setting_name}' will not include {component_id}")
-                # print(f"[Config-Presets] 新预设'{new_setting_name}'将不包含{component_id}")
+                #log(f"New preset '{new_setting_name}' will not include {component_id}")
+                # log(f"新预设'{new_setting_name}'将不包含{component_id}")
                 continue
 
             if component_map[component_id] is not None:
@@ -1495,23 +1495,23 @@ def save_config(config_presets, component_map, config_file_name):
                 else:
                     new_setting_map[component_id] = new_value
 
-                #print(f"Saving '{component_id}' as: {new_setting_map[component_id]} ({new_value})")
+                #log_debug(f"Saving '{component_id}' as: {new_setting_map[component_id]} ({new_value})")
 
-        #print(f"new_setting_map = {new_setting_map}")
+        #log_debug(f"new_setting_map = {new_setting_map}")
 
         config_presets.update({new_setting_name: new_setting_map})
         write_json_to_file(config_presets, config_file_name)
         # 使用新设置映射更新配置预设
         # 将配置预设写入JSON文件
 
-        # print(f"self.txt2img_config_preset_dropdown.choices before =\n{self.txt2img_config_preset_dropdown.choices}")
+        # log_debug(f"self.txt2img_config_preset_dropdown.choices before =\n{self.txt2img_config_preset_dropdown.choices}")
         # self.txt2img_config_preset_dropdown.choices = list(config_presets.keys())
-        # print(f"self.txt2img_config_preset_dropdown.choices after =\n{self.txt2img_config_preset_dropdown.choices}")
+        # log_debug(f"self.txt2img_config_preset_dropdown.choices after =\n{self.txt2img_config_preset_dropdown.choices}")
 
-        print(f"[Config-Presets] Added new preset: {new_setting_name}")
-        #print(f"[Config-Presets] Restarting UI...") # done in _js
-        # print(f"[Config-Presets] 添加新预设：{new_setting_name}")
-        # print(f"[Config-Presets] 重启UI...") # 在_js中完成
+        log(f"Added new preset: {new_setting_name}")
+        #log(f"Restarting UI...") # done in _js
+        # log(f"添加新预设：{new_setting_name}")
+        # log(f"重启UI...") # 在_js中完成
         return gr.Dropdown.update(value=new_setting_name,   # update the dropdown with the new config preset
                                   #choices=list(config_presets.keys()),
                                   choices=get_config_preset_dropdown_choices(config_presets.keys()),
