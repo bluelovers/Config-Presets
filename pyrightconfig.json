@@ -8,8 +8,8 @@
   "reportUnknownParameterType": "none",
   "reportMissingParameterType": "none",
 
-  "reportUnknownMemberType": "information",
-  "reportUnknownVariableType": "information",
+  "reportUnknownMemberType": "none",
+  "reportUnknownVariableType": "none",
   "reportUnknownArgumentType": "information",
 
   "reportAttributeAccessIssue": "information",
