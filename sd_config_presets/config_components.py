@@ -13,7 +13,9 @@ IDs from configuration files and handle logging.
 """
 
 from enum import Enum, unique
-from typing import IO
+import json
+from typing import IO, Any
+from json import JSONDecodeError
 
 
 @unique
@@ -181,4 +183,74 @@ def _write_text_to_file(text: str, file_path: str):
     """
     with open(file_path, "w") as file:
         file.write(text)  # pyright: ignore[reportUnusedCallResult]
+
+def write_json_to_file(json_data, file_path: str):
+    """
+    Write JSON data to a file with proper indentation.
+    
+    将JSON数据以适当的缩进写入文件。
+    """
+    with open(file_path, "w") as file:
+        file.write(json.dumps(json_data, indent=2))  # pyright: ignore[reportUnusedCallResult]
+
+def _replace_text_in_file(old: str, new: str, file_path: str):  # pyright: ignore[reportUnusedFunction]
+    """
+    Replace text in a file with new text.
+    
+    用新文本替换文件中的文本。
+    """
+    with open(file_path, "r") as file:
+        content = file.read()
+
+    with open(file_path, "w") as file:
+        file.write(content.replace(old, new))  # pyright: ignore[reportUnusedCallResult]
+
+def load_config_file(file_path: str, type_name: EnumTypeName, default_presets: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:  # pyright: ignore[reportExplicitAny]
+    """
+    Generic function to load configuration presets from JSON file.
+    
+    通用函数，用于从JSON文件加载配置预设。
+    
+    This function follows the same pattern as load_custom_tracked_component_ids():
+    1. Try to load the JSON file
+    2. If the file doesn't exist or is corrupted, use the default presets
+    3. Handle different error types appropriately
+    4. Log the actions taken
+    
+    此函数遵循与load_custom_tracked_component_ids()相同的模式：
+    1. 尝试加载JSON文件
+    2. 如果文件不存在或损坏，使用默认预设
+    3. 适当处理不同错误类型
+    4. 记录执行的操作
+    
+    Args:
+        file_path (str): Name of the config file / 配置文件名
+        type_name (EnumTypeName): Type of configuration (txt2img or img2img) / 配置类型（txt2img或img2img）
+        default_presets (dict): Default presets to use if file loading fails / 文件加载失败时使用的默认预设
+    
+    Returns:
+        dict: Dictionary containing configuration presets / 包含配置预设的字典
+    """
+    try:
+        with open(file_path) as file:
+            return json.load(file)  # pyright: ignore[reportAny]
+
+    except (FileNotFoundError, JSONDecodeError) as e:
+        # JSONDecodeError can happen and prevent Web UI from loading if the json file is malformed
+        # JSONDecodeError会在json文件格式错误时发生，并阻止Web UI加载
+        
+        if e.__class__ == FileNotFoundError:
+            # File not found - create with defaults
+            # 文件未找到 - 使用默认值创建
+            write_json_to_file(default_presets, file_path)
+            log(f"{type_name} config file not found. Created default {type_name} config at {file_path}")
+        elif e.__class__ == JSONDecodeError:
+            # File corrupted - log error and return error preset
+            # 文件损坏 - 记录错误并返回错误预设
+            log_error(f"failed to load {type_name} config file at {file_path}")
+            log_error(f"at line {e.lineno}, col {e.colno}: {e.msg}")  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
+            log_error(f"Loading default presets until you fix the syntax error, or you could delete the file and let it be recreated with default values.")
+            return {"ERROR loading your config file! See console for details": {}}
+
+    return default_presets
 

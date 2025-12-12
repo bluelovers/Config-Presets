@@ -4,13 +4,12 @@ import traceback
 import modules.sd_samplers  # pyright: ignore[reportMissingImports]
 import modules.scripts as scripts  # pyright: ignore[reportMissingImports]
 import gradio as gr  # pyright: ignore[reportMissingImports]
-import json
-import os
-import platform
-import subprocess as sp
-from json import JSONDecodeError
+import os  # pyright: ignore[reportUnusedImport]
+import platform  # pyright: ignore[reportUnusedImport]
+import subprocess as sp  # pyright: ignore[reportUnusedImport]
+
 from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImports, reportUnknownVariableType]
-from sd_config_presets.config_components import load_custom_tracked_component_ids, EnumTypeName, log, log_error, log_critical_error
+from sd_config_presets.config_components import load_custom_tracked_component_ids, EnumTypeName, log, log_error, log_critical_error, load_config_file
 
 
 # Base directory path for the Config-Presets extension
@@ -588,20 +587,18 @@ def load_txt2img_config_file():
     如果文件不存在或损坏，创建默认预设。
     返回包含所有txt2img配置预设的字典。
     """
-    try:
-        with open(f"{BASEDIR}/{CONFIG_TXT2IMG_FILE_NAME}") as file:
-            txt2img_config_presets = json.load(file)
+    # Define type name for txt2img configuration
+    # 为txt2img配置定义类型名称
+    type_name = EnumTypeName.txt2img
+    
+    # Note: "txt2img_enable_hr" was changed to "txt2img_hr-checkbox" in A1111 1.6.0 (8/31/2023), but we keep it
+    # as "txt2img_enable_hr" in config file so that newer version of Config Presets will work with older
+    # versions of A1111. This is handled at runtime with synonyms.
+    # 注意："txt2img_enable_hr"在A1111 1.6.0 (8/31/2023)中更改为"txt2img_hr-checkbox"，但我们在配置文件中
+    # 保持为"txt2img_enable_hr"，以便Config Presets的更新版本能与旧版A1111兼容。这在运行时通过同义词处理。
 
-    except (FileNotFoundError, JSONDecodeError) as e:    #JSONDecodeError can happen and prevent the Web UI from loading if the json file is malformed
-        # txt2img config file not found
-        # First time running the extension or it was deleted, so fill it with default values
-        # txt2img配置文件未找到
-        # 第一次运行扩展或文件被删除，所以用默认值填充
-
-        # Note: "txt2img_enable_hr" was changed to "txt2img_hr-checkbox" in A1111 1.6.0 (8/31/2023), but we keep it
-        # as "txt2img_enable_hr" in the config file so that newer version of Config Presets will work with older
-        # versions of A1111. This is handled at run time with synonyms.
-
+    # Default presets for txt2img configuration
+    # txt2img配置的默认预设
         txt2img_config_presets = {
             "None": {},
             "SD1.5 - 512x512": {
@@ -703,16 +700,9 @@ def load_txt2img_config_file():
             },
         }
 
-        if e.__class__ == FileNotFoundError:
-            write_json_to_file(txt2img_config_presets, CONFIG_TXT2IMG_FILE_NAME)
-            log(f"txt2img config file not found. Created default txt2img config at {BASEDIR}/{CONFIG_TXT2IMG_FILE_NAME}")
-        elif e.__class__ == JSONDecodeError:
-            log_error(f"failed to load txt2img config file at {BASEDIR}/{CONFIG_TXT2IMG_FILE_NAME}")
-            log_error(f"at line {e.lineno}, col {e.colno}: {e.msg}")
-            log_error(f"Loading the default presets until you fix the syntax error, or you could delete the file and let it be recreated with default values.")
-            txt2img_config_presets = {"ERROR loading your config file! See the console for details": {}}
-
-    return txt2img_config_presets
+    # Call the generic _load_config_file function with specific parameters
+    # 调用通用的_load_config_file函数，传入特定参数
+    return load_config_file(f"{BASEDIR}/{CONFIG_TXT2IMG_FILE_NAME}", type_name, txt2img_config_presets)
 
 
 def load_img2img_config_file():
@@ -725,16 +715,12 @@ def load_img2img_config_file():
     如果文件不存在或损坏，创建默认预设。
     返回包含所有img2img配置预设的字典。
     """
-    try:
-        with open(f"{BASEDIR}/{CONFIG_IMG2IMG_FILE_NAME}") as file:
-            img2img_config_presets = json.load(file)
+    # Define type name for img2img configuration
+    # 为img2img配置定义类型名称
+    type_name = EnumTypeName.img2img
 
-
-    except (FileNotFoundError, JSONDecodeError) as e:  # JSONDecodeError can happen and prevent the Web UI from loading if the json file is malformed
-        # img2img config file not found
-        # First time running the extension or it was deleted, so fill it with default values
-        # img2img配置文件未找到
-        # 第一次运行扩展或文件被删除，所以用默认值填充
+    # Default presets for img2img configuration
+    # img2img配置的默认预设
         img2img_config_presets = {
             "None": {},
             "Low denoising ------- denoising: 0.25, steps: 20, DPM++ 2M": {
@@ -769,17 +755,9 @@ def load_img2img_config_file():
             },
         }
 
-        if e.__class__ == FileNotFoundError:
-            write_json_to_file(img2img_config_presets, CONFIG_IMG2IMG_FILE_NAME)
-            log(f"img2img config file not found. Created default img2img config at {BASEDIR}/{CONFIG_IMG2IMG_FILE_NAME}")
-        elif e.__class__ == JSONDecodeError:
-            log_error(f"failed to load img2img config file at {BASEDIR}/{CONFIG_IMG2IMG_FILE_NAME}")
-            log_error(f"at line {e.lineno}, col {e.colno}: {e.msg}")
-            log_error(f"Loading the default presets until you fix the syntax error, or you could delete the file and let it be recreated with default values.")
-            img2img_config_presets = {"ERROR loading your config file! See the console for details": {}}
-
-    return img2img_config_presets
-
+    # Call the generic _load_config_file function with specific parameters
+    # 调用通用的_load_config_file函数，传入特定参数
+    return load_config_file(f"{BASEDIR}/{CONFIG_IMG2IMG_FILE_NAME}", type_name, img2img_config_presets)
 
 # workaround function for not being able to select new dropdown values after new choices are added to the dropdown in Gradio v3.28.1 (Automatic1111 v1.1.0)
 # it's possible they will fix this in Gradio v4
@@ -1226,7 +1204,7 @@ class Script(scripts.Script):
                             del config_presets[config_preset_name]
                             log(f"deleted: "{config_preset_name}"')
 
-                            write_json_to_file(config_presets, config_file_name)
+                            write_json_to_file(config_presets, f"{BASEDIR}/{config_file_name}")
 
                             preset_keys = list(config_presets.keys())
                             return gr.Dropdown.update(value=preset_keys[len(preset_keys)-1],
@@ -1500,7 +1478,7 @@ def save_config(config_presets, component_map, config_file_name):
         #log_debug(f"new_setting_map = {new_setting_map}")
 
         config_presets.update({new_setting_name: new_setting_map})
-        write_json_to_file(config_presets, config_file_name)
+        write_json_to_file(config_presets, f"{BASEDIR}/{config_file_name}")
         # 使用新设置映射更新配置预设
         # 将配置预设写入JSON文件
 
@@ -1520,28 +1498,4 @@ def save_config(config_presets, component_map, config_file_name):
                                   # 清除"新预设名称"文本框
 
     return func
-
-
-def write_json_to_file(json_data, file_name: str):
-    """
-    Write JSON data to a file with proper indentation.
-    
-    将JSON数据以适当的缩进写入文件。
-    """
-    with open(f"{BASEDIR}/{file_name}", "w") as file:
-        file.write(json.dumps(json_data, indent=4))
-
-
-def replace_text_in_file(old: str, new: str, file_name: str):
-    """
-    Replace text in a file with new text.
-    
-    用新文本替换文件中的文本。
-    """
-    with open(f"{BASEDIR}/{file_name}", "r") as file:
-        content = file.read()
-
-    with open(f"{BASEDIR}/{file_name}", "w") as file:
-        file.write(content.replace(old, new))
-
 
