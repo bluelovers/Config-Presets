@@ -3,6 +3,8 @@ from typing import Any
 from sd_config_presets.config_components import log, log_error, write_json_to_file
 from modules.sd_samplers import samplers_map, samplers  # pyright: ignore[reportMissingImports]
 import gradio as gr  # pyright: ignore[reportMissingImports]
+from sd_config_presets.utils import open_file_in_system_app
+from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImports]
 
 
 #def get_config_preset_dropdown_choices(new_config_presets) -> list[str]:
@@ -102,3 +104,34 @@ def save_config(config_presets: dict[str, Any], component_map: dict[str, Any], c
                                   # 清除"新预设名称"文本框
 
     return func
+
+def createOpenFileInSystemAppButton(value: str, elem_id: str, file_path: str, btnClass: gr.Button | ToolButton = gr.Button, tooltip: str | None = None, *args, **kwargs):
+    """
+    Create a button that opens a file in the system's default application.
+    
+    创建一个在系统默认应用程序中打开文件的按钮。
+    
+    Args:
+        value (str): Button display text / 按钮显示文本
+        elem_id (str): Element ID for the button / 按钮的元素ID
+        file_path (str): Path to the file to open / 要打开的文件路径
+        btnClass (gr.Button | ToolButton): Button class to use / 要使用的按钮类
+        *args: Additional positional arguments passed to btnClass / 传递给btnClass的额外位置参数
+        **kwargs: Additional keyword arguments passed to btnClass / 传递给btnClass的额外关键字参数
+    
+    Returns:
+        btn: The created button instance / 创建的按钮实例
+    """
+    btn = btnClass(
+        value=value,
+        elem_id=elem_id,
+        tooltip=tooltip,
+        *args,
+        **kwargs
+    )
+    btn.click(
+        fn=lambda: open_file_in_system_app(file_path),
+        inputs=[],
+        outputs=[],
+    )
+    return btn

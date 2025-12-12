@@ -7,8 +7,7 @@ import gradio as gr  # pyright: ignore[reportMissingImports]
 
 from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImports]
 from sd_config_presets.config_components import dict_synonyms, load_custom_tracked_component_ids, EnumTypeName, log, log_error, log_critical_error, load_config_file, write_json_to_file
-from sd_config_presets.sd_components import save_config, get_config_preset_dropdown_choices
-from sd_config_presets.utils import open_file_in_system_app
+from sd_config_presets.sd_components import createOpenFileInSystemAppButton, save_config, get_config_preset_dropdown_choices
 
 # Base directory path for the Config-Presets extension
 # Contains the full path to the extension folder
@@ -1211,17 +1210,13 @@ class Script(scripts.Script):
                         outputs=[config_preset_dropdown],
                     )
 
-
-
-                    open_config_file_button = ToolButton(
+                    open_config_file_button = createOpenFileInSystemAppButton(
+                        btnClass=ToolButton,
                         value="📂",
+                        tooltip="Open config file in system app",
                         elem_id="script_config_preset_open_config_file_button",
                         visible=False,
-                    )
-                    open_config_file_button.click(
-                        fn=lambda: open_file_in_system_app(config_file_name),
-                        inputs=[],
-                        outputs=[],
+                        file_path=config_file_name
                     )
 
                     cancel_button = ToolButton(
@@ -1335,14 +1330,12 @@ class Script(scripts.Script):
 
                         with gr.Row():
                             with gr.Column(scale=1):
-                                open_custom_tracked_components_config_file_button = gr.Button(
+                                createOpenFileInSystemAppButton(
+                                    btnClass=gr.Button,
                                     value="📂 Add custom fields...",
+                                    tooltip="Add custom fields to the custom tracked components config",
                                     elem_id="script_config_preset_open_custom_tracked_components_config",
-                                )
-                                open_custom_tracked_components_config_file_button.click(
-                                    fn=lambda: open_file_in_system_app(custom_tracked_components_config_file_name),
-                                    inputs=[],
-                                    outputs=[],
+                                    file_path=custom_tracked_components_config_file_name
                                 )
                             with gr.Column(scale=2):
                                 pass
