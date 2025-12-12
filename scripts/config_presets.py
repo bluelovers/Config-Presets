@@ -1,16 +1,17 @@
 import traceback
-import modules.sd_samplers
-import modules.scripts as scripts
-import gradio as gr
+import modules.sd_samplers  # pyright: ignore[reportMissingImports]
+import modules.scripts as scripts  # pyright: ignore[reportMissingImports]
+import gradio as gr  # pyright: ignore[reportMissingImports]
 import json
 import os
 import platform
 import subprocess as sp
 from json import JSONDecodeError
-from modules.ui_components import ToolButton
+from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImports, reportUnknownVariableType]
+from sd_config_presets.config_components import load_custom_tracked_component_ids, EnumTypeName, log_error, log_critical_error
 
 
-BASEDIR = scripts.basedir()     #C:\path\to\Stable Diffusion\extensions\Config-Presets   needs to be set in global space to get the extra 'extensions\Config-Presets' path
+BASEDIR: str = scripts.basedir()     #C:\path\to\Stable Diffusion\extensions\Config-Presets   needs to be set in global space to get the extra 'extensions\Config-Presets' path  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
 CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME = "config-txt2img-custom-tracked-components.txt"
 CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME = "config-img2img-custom-tracked-components.txt"
 CONFIG_TXT2IMG_FILE_NAME = "config-txt2img.json"
@@ -18,19 +19,10 @@ CONFIG_IMG2IMG_FILE_NAME = "config-img2img.json"
 
 
 def load_txt2img_custom_tracked_component_ids() -> list[str]:
-    txt2img_custom_tracked_components_ids = []
-    try:
-        with open(f"{BASEDIR}/{CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME}", "r") as file:
-            for line in file:
-                line = line.strip()
-                if not line.startswith("#") and line != "":  # ignore lines that start with # or are empty
-                    txt2img_custom_tracked_components_ids.append(line)
-                    #print(f"Added txt2img custom tracked component: {line}")
 
-    except FileNotFoundError:
-        # config file not found
-        # First time running the extension or it was deleted, so fill it with default values
-        txt2img_custom_tracked_components_default_text = """# Put custom txt2img tracked component IDs here. This will allow those fields to be saved as a config preset.
+    # config file not found
+    # First time running the extension or it was deleted, so fill it with default values
+    txt2img_custom_tracked_components_default_text = """# Put custom txt2img tracked component IDs here. This will allow those fields to be saved as a config preset.
 # Lines starting with a # are ignored.
 # Component IDs can be found in the HTML (id="..."), in modules/ui.py (elem_id="..."), or in an extensions python code. IDs like "component-5890" won't work because the number at the end will change each startup.
 # Entering an invalid component ID here will cause this extension to error and not load. Components that do not have a value associated with them, such as tabs and accordions, are not supported.
@@ -259,27 +251,14 @@ def load_txt2img_custom_tracked_component_ids() -> list[str]:
 #script_txt2img_adetailer_ad_controlnet_guidance_end_2nd
 """
 
-        write_text_to_file(txt2img_custom_tracked_components_default_text, CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME)
-        print(f"[Config Presets] txt2img custom tracked components config file not found, created default config at {BASEDIR}/{CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME}")
-
-    return txt2img_custom_tracked_components_ids
-
+    return load_custom_tracked_component_ids(f"{BASEDIR}/{CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME}", EnumTypeName.txt2img, txt2img_custom_tracked_components_default_text)
 
 
 def load_img2img_custom_tracked_component_ids() -> list[str]:
-    img2img_custom_tracked_components_ids = []
-    try:
-        with open(f"{BASEDIR}/{CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME}", "r") as file:
-            for line in file:
-                line = line.strip()
-                if not line.startswith("#") and line != "":  # ignore lines that start with # or are empty
-                    img2img_custom_tracked_components_ids.append(line)
-                    #print(f"Added img2img custom tracked component: {line}")
 
-    except FileNotFoundError:
-        # config file not found
-        # First time running the extension or it was deleted, so fill it with default values
-        img2img_custom_tracked_components_ids = """# Put custom img2img tracked component IDs here. This will allow those fields to be saved as a config preset.
+    # config file not found
+    # First time running the extension or it was deleted, so fill it with default values
+    img2img_custom_tracked_components_default_text = """# Put custom img2img tracked component IDs here. This will allow those fields to be saved as a config preset.
 # Lines starting with a # are ignored.
 # Component IDs can be found in the HTML (id="..."), in modules/ui.py (elem_id="..."), or in an extensions python code. IDs like "component-5890" won't work because the number at the end will change each startup.
 # Entering an invalid component ID here will cause this extension to error and not load. Components that do not have a value associated with them, such as tabs and accordions, are not supported.
@@ -563,10 +542,7 @@ def load_img2img_custom_tracked_component_ids() -> list[str]:
 #ultimateupscale_save_seams_fix_image
 """
 
-        write_text_to_file(img2img_custom_tracked_components_ids, CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME)
-        print(f"[Config Presets] img2img custom tracked components config file not found, created default config at {BASEDIR}/{CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME}")
-
-    return img2img_custom_tracked_components_ids
+    return load_custom_tracked_component_ids(f"{BASEDIR}/{CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME}", EnumTypeName.img2img, img2img_custom_tracked_components_default_text)
 
 
 def load_txt2img_config_file():
@@ -1377,11 +1353,6 @@ def write_json_to_file(json_data, file_name: str):
         file.write(json.dumps(json_data, indent=4))
 
 
-def write_text_to_file(text, file_name: str):
-    with open(f"{BASEDIR}/{file_name}", "w") as file:
-        file.write(text)
-
-
 def replace_text_in_file(old: str, new: str, file_name: str):
     with open(f"{BASEDIR}/{file_name}", "r") as file:
         content = file.read()
@@ -1390,13 +1361,3 @@ def replace_text_in_file(old: str, new: str, file_name: str):
         file.write(content.replace(old, new))
 
 
-def log(text: str):
-    print(f"[Config Presets] {text}")
-
-
-def log_error(text: str):
-    print(f"[ERROR][Config Presets] {text}")
-
-
-def log_critical_error(text: str):
-    print(f"[ERROR][CRITICAL][Config Presets] {text}")
