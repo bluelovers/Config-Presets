@@ -184,7 +184,7 @@ def _write_text_to_file(text: str, file_path: str):
     with open(file_path, "w") as file:
         file.write(text)  # pyright: ignore[reportUnusedCallResult]
 
-def write_json_to_file(json_data, file_path: str):
+def write_json_to_file(json_data: Any, file_path: str):  # pyright: ignore[reportExplicitAny, reportAny]
     """
     Write JSON data to a file with proper indentation.
     
