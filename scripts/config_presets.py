@@ -779,7 +779,7 @@ class Script(scripts.Script):
         # These are the settings from the UI that are saved for each preset
         # 这些是每个预设保存的UI设置
         # These are the settings from the UI that are saved for each preset
-        self.txt2img_component_ids = [
+        self.txt2img_component_ids: list[str] = [
             "txt2img_sampling",
             "txt2img_scheduler",        # added in A1111 1.9.0 (Schedule type)
             "txt2img_steps",
@@ -813,7 +813,7 @@ class Script(scripts.Script):
         ]
         self.txt2img_component_ids += txt2img_custom_tracked_components_ids # add the custom tracked components
 
-        self.img2img_component_ids = [
+        self.img2img_component_ids: list[str] = [
             "img2img_sampling",
             "img2img_scheduler",        # added in A1111 1.9.0 (Schedule type)
             "img2img_steps",
@@ -847,7 +847,7 @@ class Script(scripts.Script):
         # 可选ID在找不到关联组件时不会导致扩展崩溃。
         # 这些可能是Web UI/扩展旧版本的遗留ID，或来自其他UI（Vlad的SD.Next）的ID。
         # 放在这里的ID也需要放入上面的txt2img_component_ids和img2img_component_ids数组中。
-        self.txt2img_optional_ids = [
+        self.txt2img_optional_ids: list[str] = [
             "txt2img_restore_faces",    # removed in A1111 1.6.0
             "txt2img_enable_hr",        # removed in A1111 1.6.0, and replaced in Vlad's SD.Next
             "txt2img_hr-checkbox",      # added in A1111 1.6.0
@@ -872,7 +872,7 @@ class Script(scripts.Script):
             "controlnet_control_mod_radio",
             "controlnet_control_mode_radio",
         ]
-        self.img2img_optional_ids = [
+        self.img2img_optional_ids: list[str] = [
             "img2img_restore_faces",    # removed in A1111 1.6.0
             "img2img_enable-checkbox",  # added in A1111 1.6.0 (Refiner accordion)
             "img2img_switch_at",        # added in A1111 1.6.0 (Refiner Switch at)
@@ -950,13 +950,13 @@ class Script(scripts.Script):
         
         # Mapping between component labels and the actual components in ui.py
         # 组件标签与ui.py中实际组件之间的映射
-        self.txt2img_component_map = {k: None for k in self.txt2img_component_ids}  # gets filled up in the after_component() method
-        self.img2img_component_map = {k: None for k in self.img2img_component_ids}  # gets filled up in the after_component() method
+        self.txt2img_component_map: dict[str, Any] = {k: None for k in self.txt2img_component_ids}  # gets filled up in the after_component() method
+        self.img2img_component_map: dict[str, Any] = {k: None for k in self.img2img_component_ids}  # gets filled up in the after_component() method
 
         # Load txt2img and img2img config files
         # 加载txt2img和img2img配置文件
-        self.txt2img_config_presets = load_txt2img_config_file()
-        self.img2img_config_presets = load_img2img_config_file()
+        self.txt2img_config_presets: dict[str, dict[str, Any]] = load_txt2img_config_file()
+        self.img2img_config_presets: dict[str, dict[str, Any]] = load_img2img_config_file()
 
 
 
@@ -1051,14 +1051,14 @@ class Script(scripts.Script):
                     # log_debug(component.elem_id)
                     index_type_components.append(component.elem_id)
 
-            preset_values = []
+            preset_values: list[str] = []
             config_presets: dict[str, Any] = None  # pyright: ignore[reportAssignmentType]
             if self.is_txt2img:
                 config_presets = self.txt2img_config_presets
             else:
                 config_presets = self.img2img_config_presets
 
-            preset_values: list[str] = list(config_presets.keys())
+            preset_values = list(config_presets.keys())
             # for dropdownValue in config_presets:
             #     preset_values.append(dropdownValue)
             #     #log(f"added \"{dropdownValue}\"")
@@ -1180,12 +1180,12 @@ class Script(scripts.Script):
                             self.txt2img_config_presets = load_txt2img_config_file()
                             #new_config_presets = self.txt2img_config_presets
                             config_presets.update(self.txt2img_config_presets)
-                            preset_values: list[str] = list(self.txt2img_config_presets.keys())
+                            preset_values = list(self.txt2img_config_presets.keys())
                         else:
                             self.img2img_config_presets = load_img2img_config_file()
                             #new_config_presets = self.img2img_config_presets
                             config_presets.update(self.img2img_config_presets)
-                            preset_values: list[str] = list(self.img2img_config_presets.keys())
+                            preset_values = list(self.img2img_config_presets.keys())
                         
                         return gr.Dropdown.update(choices=get_config_preset_dropdown_choices(preset_values))
 

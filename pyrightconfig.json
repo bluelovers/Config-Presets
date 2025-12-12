@@ -3,15 +3,19 @@
   "reportAny": "none",
 
   "reportUnusedCallResult": "none",
+  "reportUnnecessaryComparison": "none",
 
   "reportUnknownParameterType": "none",
   "reportMissingParameterType": "none",
 
-  "reportUnknownMemberType": "none",
-  "reportUnknownVariableType": "none",
+  "reportUnknownMemberType": "information",
+  "reportUnknownVariableType": "information",
+  "reportUnknownArgumentType": "information",
 
-  "reportAttributeAccessIssue": "none",
+  "reportAttributeAccessIssue": "information",
 
   "reportUnnecessaryIsInstance": "information",
   "reportUnusedFunction": "information",
+  "reportUnusedParameter": "information",
+  "reportUntypedBaseClass": "information",
 }
