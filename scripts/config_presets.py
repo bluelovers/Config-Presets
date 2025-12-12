@@ -599,106 +599,106 @@ def load_txt2img_config_file():
 
     # Default presets for txt2img configuration
     # txt2img配置的默认预设
-        txt2img_config_presets = {
-            "None": {},
-            "SD1.5 - 512x512": {
-                "txt2img_width": 512,
-                "txt2img_height": 512,
-            },
-            "SD2.1 - 768x768": {
-                "txt2img_width": 768,
-                "txt2img_height": 768,
-            },
-            "SDXL --- 1024x1024": {
-                "txt2img_width": 1024,
-                "txt2img_height": 1024,
-            },
-            "SDXL --- 1024x1024 with Refiner": {
-                "txt2img_width": 1024,
-                "txt2img_height": 1024,
-                "txt2img_enable-checkbox": True,
-            },
-            "Flux.1 Dev - 256x256 to 1920x1080 (0.1 to 2.0 megapixels), 20 steps, CFG 1, Distilled CFG 3.5, Euler Simple": {
-                "txt2img_width": 1024,
-                "txt2img_height": 1024,
-                "txt2img_sampling": "Euler",
-                "txt2img_scheduler": "Simple",
-                "txt2img_distilled_cfg_scale": 3.5,
-                "txt2img_cfg_scale": 1,
-                "txt2img_steps": 20,
-            },
-            "Flux.1 Schnell - 256x256 to 1920x1080 (0.1 to 2.0 megapixels), 4 steps, CFG 1, Distilled CFG 3.5, Euler Simple": {
-                "txt2img_width": 1024,
-                "txt2img_height": 1024,
-                "txt2img_sampling": "Euler",
-                "txt2img_scheduler": "Simple",
-                "txt2img_distilled_cfg_scale": 3.5,
-                "txt2img_cfg_scale": 1,
-                "txt2img_steps": 4,
-            },
-            "High res ----------- [Hires fix - Upscale by: 2, Denoising: 0.3, Hires steps: 10]": {
-                "txt2img_enable_hr": True,
-                "txt2img_hr_scale": 2,
-                "txt2img_hires_steps": 10,
-                "txt2img_denoising_strength": 0.3,
-                "txt2img_batch_count": 1,
-                "txt2img_batch_size": 1,
-            },
-            "SD1.5 Low quality ------ steps: 10, batch size: 4, DPM++ 2M": {
-                "txt2img_sampling": "DPM++ 2M",
-                "txt2img_steps": 10,
-                "txt2img_enable_hr": False,
-                "txt2img_batch_count": 1,
-                "txt2img_batch_size": 4,
-            },
-            "SD1.5 Medium quality - steps: 15, batch size: 4, DPM++ 2M": {
-                "txt2img_sampling": "DPM++ 2M",
-                "txt2img_steps": 15,
-                "txt2img_enable_hr": False,
-                "txt2img_batch_count": 1,
-                "txt2img_batch_size": 4,
-            },
-            "SD1.5 High quality ------ steps: 30, batch size: 4, DPM++ 2S a": {
-                "txt2img_sampling": "DPM++ 2S a",
-                "txt2img_steps": 30,
-                "txt2img_enable_hr": False,
-                "txt2img_batch_count": 1,
-                "txt2img_batch_size": 4,
-            },
-            "SD1.5 - 1080p --- 432x768 -> 1920x1080, [Hires fix - Upscale by: 2.5, Denoising: 0.4, Hires steps: 10]": {
-                # 2x 960x536, 2.5x 768x432, 3x 640x360
-                "txt2img_width": 768,
-                "txt2img_height": 432,
-                "txt2img_enable_hr": True,
-                "txt2img_hr_scale": 2.5,
-                "txt2img_hires_steps": 10,
-                "txt2img_denoising_strength": 0.4,
-                "txt2img_batch_count": 1,
-                "txt2img_batch_size": 1,
-            },
-            "SD1.5 - 1440p --- 432x768 -> 2560x1440, [Hires fix - Upscale by: 3.3334, Denoising: 0.35, Hires steps: 10]": {
-                # 2x 1024x720, 2.5x 1024x576, 3.3334x 768x432, 4x 640x360
-                "txt2img_width": 768,
-                "txt2img_height": 432,
-                "txt2img_enable_hr": True,
-                "txt2img_hr_scale": 3.3334,
-                "txt2img_hires_steps": 10,
-                "txt2img_denoising_strength": 0.35,
-                "txt2img_batch_count": 1,
-                "txt2img_batch_size": 1,
-            },
-            "SD1.5 - 4k -------- 432x768 -> 3840x2160, [Upscale by: 5, Denoising: 0.3, Hires steps: 15]": {
-                # 2x 1420x1080, 2.5x 1536x864, 3x 1280x720, 5x 768x432, 6x 640x360
-                "txt2img_width": 768,
-                "txt2img_height": 432,
-                "txt2img_enable_hr": True,
-                "txt2img_hr_scale": 5,
-                "txt2img_hires_steps": 15,
-                "txt2img_denoising_strength": 0.3,
-                "txt2img_batch_count": 1,
-                "txt2img_batch_size": 1,
-            },
-        }
+    txt2img_config_presets = {
+        "None": {},
+        "SD1.5 - 512x512": {
+            "txt2img_width": 512,
+            "txt2img_height": 512,
+        },
+        "SD2.1 - 768x768": {
+            "txt2img_width": 768,
+            "txt2img_height": 768,
+        },
+        "SDXL --- 1024x1024": {
+            "txt2img_width": 1024,
+            "txt2img_height": 1024,
+        },
+        "SDXL --- 1024x1024 with Refiner": {
+            "txt2img_width": 1024,
+            "txt2img_height": 1024,
+            "txt2img_enable-checkbox": True,
+        },
+        "Flux.1 Dev - 256x256 to 1920x1080 (0.1 to 2.0 megapixels), 20 steps, CFG 1, Distilled CFG 3.5, Euler Simple": {
+            "txt2img_width": 1024,
+            "txt2img_height": 1024,
+            "txt2img_sampling": "Euler",
+            "txt2img_scheduler": "Simple",
+            "txt2img_distilled_cfg_scale": 3.5,
+            "txt2img_cfg_scale": 1,
+            "txt2img_steps": 20,
+        },
+        "Flux.1 Schnell - 256x256 to 1920x1080 (0.1 to 2.0 megapixels), 4 steps, CFG 1, Distilled CFG 3.5, Euler Simple": {
+            "txt2img_width": 1024,
+            "txt2img_height": 1024,
+            "txt2img_sampling": "Euler",
+            "txt2img_scheduler": "Simple",
+            "txt2img_distilled_cfg_scale": 3.5,
+            "txt2img_cfg_scale": 1,
+            "txt2img_steps": 4,
+        },
+        "High res ----------- [Hires fix - Upscale by: 2, Denoising: 0.3, Hires steps: 10]": {
+            "txt2img_enable_hr": True,
+            "txt2img_hr_scale": 2,
+            "txt2img_hires_steps": 10,
+            "txt2img_denoising_strength": 0.3,
+            "txt2img_batch_count": 1,
+            "txt2img_batch_size": 1,
+        },
+        "SD1.5 Low quality ------ steps: 10, batch size: 4, DPM++ 2M": {
+            "txt2img_sampling": "DPM++ 2M",
+            "txt2img_steps": 10,
+            "txt2img_enable_hr": False,
+            "txt2img_batch_count": 1,
+            "txt2img_batch_size": 4,
+        },
+        "SD1.5 Medium quality - steps: 15, batch size: 4, DPM++ 2M": {
+            "txt2img_sampling": "DPM++ 2M",
+            "txt2img_steps": 15,
+            "txt2img_enable_hr": False,
+            "txt2img_batch_count": 1,
+            "txt2img_batch_size": 4,
+        },
+        "SD1.5 High quality ------ steps: 30, batch size: 4, DPM++ 2S a": {
+            "txt2img_sampling": "DPM++ 2S a",
+            "txt2img_steps": 30,
+            "txt2img_enable_hr": False,
+            "txt2img_batch_count": 1,
+            "txt2img_batch_size": 4,
+        },
+        "SD1.5 - 1080p --- 432x768 -> 1920x1080, [Hires fix - Upscale by: 2.5, Denoising: 0.4, Hires steps: 10]": {
+            # 2x 960x536, 2.5x 768x432, 3x 640x360
+            "txt2img_width": 768,
+            "txt2img_height": 432,
+            "txt2img_enable_hr": True,
+            "txt2img_hr_scale": 2.5,
+            "txt2img_hires_steps": 10,
+            "txt2img_denoising_strength": 0.4,
+            "txt2img_batch_count": 1,
+            "txt2img_batch_size": 1,
+        },
+        "SD1.5 - 1440p --- 432x768 -> 2560x1440, [Hires fix - Upscale by: 3.3334, Denoising: 0.35, Hires steps: 10]": {
+            # 2x 1024x720, 2.5x 1024x576, 3.3334x 768x432, 4x 640x360
+            "txt2img_width": 768,
+            "txt2img_height": 432,
+            "txt2img_enable_hr": True,
+            "txt2img_hr_scale": 3.3334,
+            "txt2img_hires_steps": 10,
+            "txt2img_denoising_strength": 0.35,
+            "txt2img_batch_count": 1,
+            "txt2img_batch_size": 1,
+        },
+        "SD1.5 - 4k -------- 432x768 -> 3840x2160, [Upscale by: 5, Denoising: 0.3, Hires steps: 15]": {
+            # 2x 1420x1080, 2.5x 1536x864, 3x 1280x720, 5x 768x432, 6x 640x360
+            "txt2img_width": 768,
+            "txt2img_height": 432,
+            "txt2img_enable_hr": True,
+            "txt2img_hr_scale": 5,
+            "txt2img_hires_steps": 15,
+            "txt2img_denoising_strength": 0.3,
+            "txt2img_batch_count": 1,
+            "txt2img_batch_size": 1,
+        },
+    }
 
     # Call the generic _load_config_file function with specific parameters
     # 调用通用的_load_config_file函数，传入特定参数
@@ -721,39 +721,39 @@ def load_img2img_config_file():
 
     # Default presets for img2img configuration
     # img2img配置的默认预设
-        img2img_config_presets = {
-            "None": {},
-            "Low denoising ------- denoising: 0.25, steps: 20, DPM++ 2M": {
-                "img2img_sampling": "DPM++ 2M",
-                "img2img_steps": 20,
-                #"img2img_width": 512,
-                #"img2img_height": 512,
-                #"img2img_batch_count": 1,
-                #"img2img_batch_size": 1,
-                #"img2img_cfg_scale": 7,
-                "img2img_denoising_strength": 0.25,
-            },
-            "Medium denoising -- denoising: 0.40, steps: 20, DPM++ 2M": {
-                "img2img_sampling": "DPM++ 2M",
-                "img2img_steps": 20,
-                #"img2img_width": 512,
-                #"img2img_height": 512,
-                #"img2img_batch_count": 1,
-                #"img2img_batch_size": 1,
-                #"img2img_cfg_scale": 7,
-                "img2img_denoising_strength": 0.40,
-            },
-            "High denoising ------- denoising: 0.75, steps: 30, DPM++ 2M": {
-                "img2img_sampling": "DPM++ 2M",
-                "img2img_steps": 30,
-                #"img2img_width": 512,
-                #"img2img_height": 512,
-                #"img2img_batch_count": 1,
-                #"img2img_batch_size": 1,
-                #"img2img_cfg_scale": 7,
-                "img2img_denoising_strength": 0.75,
-            },
-        }
+    img2img_config_presets = {
+        "None": {},
+        "Low denoising ------- denoising: 0.25, steps: 20, DPM++ 2M": {
+            "img2img_sampling": "DPM++ 2M",
+            "img2img_steps": 20,
+            #"img2img_width": 512,
+            #"img2img_height": 512,
+            #"img2img_batch_count": 1,
+            #"img2img_batch_size": 1,
+            #"img2img_cfg_scale": 7,
+            "img2img_denoising_strength": 0.25,
+        },
+        "Medium denoising -- denoising: 0.40, steps: 20, DPM++ 2M": {
+            "img2img_sampling": "DPM++ 2M",
+            "img2img_steps": 20,
+            #"img2img_width": 512,
+            #"img2img_height": 512,
+            #"img2img_batch_count": 1,
+            #"img2img_batch_size": 1,
+            #"img2img_cfg_scale": 7,
+            "img2img_denoising_strength": 0.40,
+        },
+        "High denoising ------- denoising: 0.75, steps: 30, DPM++ 2M": {
+            "img2img_sampling": "DPM++ 2M",
+            "img2img_steps": 30,
+            #"img2img_width": 512,
+            #"img2img_height": 512,
+            #"img2img_batch_count": 1,
+            #"img2img_batch_size": 1,
+            #"img2img_cfg_scale": 7,
+            "img2img_denoising_strength": 0.75,
+        },
+    }
 
     # Call the generic _load_config_file function with specific parameters
     # 调用通用的_load_config_file函数，传入特定参数
