@@ -28,12 +28,12 @@ def load_txt2img_custom_tracked_component_ids() -> list[str]:
     Load custom tracked component IDs for txt2img mode.
     This function loads component IDs that users want to track in addition to default ones.
     Returns a list of component IDs that should be tracked for presets.
-    
+
     加载txt2img模式的自定义跟踪组件ID。
     此函数加载用户想要跟踪的组件ID，除了默认的组件之外。
     返回应该为预设跟踪的组件ID列表。
     """
-    type_name = EnumTypeName.txt2img
+    type_name = EnumTypeName.txt2img.value
 
     # config file not found
     # First time running the extension or it was deleted, so fill it with default values
@@ -66,12 +66,12 @@ def load_txt2img_custom_tracked_component_ids() -> list[str]:
 #script_list
 
 # X/Y/Z plot (script):
-#script_{type_name}_xyz_plot_x_type
-#script_{type_name}_xyz_plot_y_type
-#script_{type_name}_xyz_plot_z_type
-#script_{type_name}_xyz_plot_x_values
-#script_{type_name}_xyz_plot_y_values
-#script_{type_name}_xyz_plot_z_values
+script_{type_name}_xyz_plot_x_type
+script_{type_name}_xyz_plot_y_type
+script_{type_name}_xyz_plot_z_type
+script_{type_name}_xyz_plot_x_values
+script_{type_name}_xyz_plot_y_values
+script_{type_name}_xyz_plot_z_values
 
 # Latent Couple (extension):
 #cd_{type_name}_divisions
@@ -276,12 +276,12 @@ def load_img2img_custom_tracked_component_ids() -> list[str]:
     Load custom tracked component IDs for img2img mode.
     This function loads component IDs that users want to track in addition to default ones.
     Returns a list of component IDs that should be tracked for presets.
-    
+
     加载img2img模式的自定义跟踪组件ID。
     此函数加载用户想要跟踪的组件ID，除了默认的组件之外。
     返回应该为预设跟踪的组件ID列表。
     """
-    type_name = EnumTypeName.img2img
+    type_name = EnumTypeName.img2img.value
 
     # config file not found
     # First time running the extension or it was deleted, so fill it with default values
@@ -328,12 +328,12 @@ def load_img2img_custom_tracked_component_ids() -> list[str]:
 #script_list
 
 # X/Y/Z plot (script):
-#script_{type_name}_xyz_plot_x_type
-#script_{type_name}_xyz_plot_y_type
-#script_{type_name}_xyz_plot_z_type
-#script_{type_name}_xyz_plot_x_values
-#script_{type_name}_xyz_plot_y_values
-#script_{type_name}_xyz_plot_z_values
+script_{type_name}_xyz_plot_x_type
+script_{type_name}_xyz_plot_y_type
+script_{type_name}_xyz_plot_z_type
+script_{type_name}_xyz_plot_x_values
+script_{type_name}_xyz_plot_y_values
+script_{type_name}_xyz_plot_z_values
 
 # Loopback (script):
 #script_loopback_loops
@@ -579,7 +579,7 @@ def load_txt2img_config_file():
     Load txt2img configuration presets from JSON file.
     If file doesn't exist or is corrupted, creates default presets.
     Returns a dictionary containing all txt2img configuration presets.
-    
+
     从JSON文件加载txt2img配置预设。
     如果文件不存在或损坏，创建默认预设。
     返回包含所有txt2img配置预设的字典。
@@ -587,7 +587,7 @@ def load_txt2img_config_file():
     # Define type name for txt2img configuration
     # 为txt2img配置定义类型名称
     type_name = EnumTypeName.txt2img
-    
+
     # Note: "txt2img_enable_hr" was changed to "txt2img_hr-checkbox" in A1111 1.6.0 (8/31/2023), but we keep it
     # as "txt2img_enable_hr" in config file so that newer version of Config Presets will work with older
     # versions of A1111. This is handled at runtime with synonyms.
@@ -707,7 +707,7 @@ def load_img2img_config_file():
     Load img2img configuration presets from JSON file.
     If file doesn't exist or is corrupted, creates default presets.
     Returns a dictionary containing all img2img configuration presets.
-    
+
     从JSON文件加载img2img配置预设。
     如果文件不存在或损坏，创建默认预设。
     返回包含所有img2img配置预设的字典。
@@ -761,7 +761,7 @@ class Script(scripts.Script):
     """
     Main Script class for the Config-Presets extension.
     This class handles the UI components and logic for saving/loading configuration presets.
-    
+
     Config-Presets扩展的主Script类。
     此类处理用于保存/加载配置预设的UI组件和逻辑。
     """
@@ -804,7 +804,7 @@ class Script(scripts.Script):
             "txt2img_steps_alt",        # Equiv to txt2img_hires_steps
             "txt2img_show_batch",
             "txt2img_show_seed",
-            "txt2img_show_advanced", 
+            "txt2img_show_advanced",
             "txt2img_show_second_pass", # Replaces txt2img_enable_hr in Vlad's
 
             # lllyasviel/stable-diffusion-webui-forge (Forge) https://github.com/lllyasviel/stable-diffusion-webui-forge
@@ -861,7 +861,7 @@ class Script(scripts.Script):
             "txt2img_steps_alt",
             "txt2img_show_batch",
             "txt2img_show_seed",
-            "txt2img_show_advanced", 
+            "txt2img_show_advanced",
             "txt2img_show_second_pass",
 
             # lllyasviel/stable-diffusion-webui-forge (Forge) https://github.com/lllyasviel/stable-diffusion-webui-forge
@@ -946,7 +946,7 @@ class Script(scripts.Script):
             ("script_txt2img_adetailer_ad_enable", "script_txt2img_adetailer_ad_main_accordion-checkbox"),
             ("script_img2img_adetailer_ad_enable", "script_img2img_adetailer_ad_main_accordion-checkbox"),
         ]
-        
+
         # Mapping between component labels and the actual components in ui.py
         # 组件标签与ui.py中实际组件之间的映射
         self.txt2img_component_map: dict[str, Any] = {k: None for k in self.txt2img_component_ids}  # gets filled up in the after_component() method
@@ -977,7 +977,7 @@ class Script(scripts.Script):
         """
         Called after each UI component is created.
         This is where we build our preset management UI and hook into existing components.
-        
+
         在每个UI组件创建后调用。
         这里我们构建预设管理UI并连接到现有组件。
         """
@@ -991,21 +991,21 @@ class Script(scripts.Script):
         custom_tracked_components_config_file_name = None
         optional_ids = None
         synonym_ids = self.synonym_ids
-        type_name: EnumTypeName = None  # pyright: ignore[reportAssignmentType]
+        type_name: str = None  # pyright: ignore[reportAssignmentType]
         if self.is_txt2img:
             component_map = self.txt2img_component_map
             component_ids = self.txt2img_component_ids
             config_file_name = CONFIG_TXT2IMG_FILE_NAME
             custom_tracked_components_config_file_name = CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME
             optional_ids = self.txt2img_optional_ids
-            type_name = EnumTypeName.txt2img
+            type_name = EnumTypeName.txt2img.value
         else:
             component_map = self.img2img_component_map
             component_ids = self.img2img_component_ids
             config_file_name = CONFIG_IMG2IMG_FILE_NAME
             custom_tracked_components_config_file_name = CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME
             optional_ids = self.img2img_optional_ids
-            type_name = EnumTypeName.img2img
+            type_name = EnumTypeName.img2img.value
 
         #if component.label in self.component_map:
         if component.elem_id in component_map:
@@ -1153,7 +1153,7 @@ class Script(scripts.Script):
                     def delete_selected_preset(config_preset_name: str):
                         """
                         Delete the selected preset from the configuration.
-                        
+
                         删除选中的预设配置。
                         """
                         if config_preset_name in config_presets.keys():
@@ -1168,11 +1168,11 @@ class Script(scripts.Script):
                                                         )
                         # do nothing if no value is selected
                         return gr.Dropdown.update()
-                    
+
                     def refresh_dropdown_button_click():
                         """
                         Refresh the dropdown by reloading configuration presets from files.
-                        
+
                         通过从文件重新加载配置预设来刷新下拉菜单。
                         """
                         if self.is_txt2img:
@@ -1185,7 +1185,7 @@ class Script(scripts.Script):
                             #new_config_presets = self.img2img_config_presets
                             config_presets.update(self.img2img_config_presets)
                             preset_values = list(self.img2img_config_presets.keys())
-                        
+
                         return gr.Dropdown.update(choices=get_config_preset_dropdown_choices(preset_values))
 
                     refresh_dropdown_button = ToolButton(
@@ -1278,7 +1278,7 @@ class Script(scripts.Script):
                                 """
                                 Handle add/remove button click event.
                                 Auto-populate textbox if empty when a preset is selected.
-                                
+
                                 处理添加/删除按钮点击事件。
                                 如果选择了预设且文本框为空，则自动填充文本框。
                                 """
@@ -1295,7 +1295,7 @@ class Script(scripts.Script):
                             def expand_edit_ui():
                                 """
                                 Expand the edit UI by showing relevant buttons and hiding others.
-                                
+
                                 展开编辑UI，显示相关按钮并隐藏其他按钮。
                                 """
                                 return gr.Row.update(visible=True), gr.Button.update(visible=True), gr.Button.update(visible=False), gr.Button.update(visible=False), gr.Button.update(visible=True), gr.Button.update(visible=True), gr.Button.update(visible=True)
@@ -1303,7 +1303,7 @@ class Script(scripts.Script):
                             def collapse_edit_ui():
                                 """
                                 Collapse the edit UI by hiding relevant buttons and showing others.
-                                
+
                                 折叠编辑UI，隐藏相关按钮并显示其他按钮。
                                 """
                                 return gr.Row.update(visible=False), gr.Button.update(visible=False), gr.Button.update(visible=True), gr.Button.update(visible=True), gr.Button.update(visible=False), gr.Button.update(visible=False), gr.Button.update(visible=False)
@@ -1344,7 +1344,7 @@ class Script(scripts.Script):
     def ui(self, is_img2img: bool):
         """
         Placeholder for UI creation. Not used in this extension.
-        
+
         UI创建的占位符。此扩展中未使用。
         """
         pass
@@ -1352,7 +1352,7 @@ class Script(scripts.Script):
     def run(self, p, *args):
         """
         Placeholder for script execution. Not used in this extension.
-        
+
         脚本执行的占位符。此扩展中未使用。
         """
         pass
