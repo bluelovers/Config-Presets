@@ -6,6 +6,7 @@ import modules.scripts as scripts  # pyright: ignore[reportMissingImports]
 import gradio as gr  # pyright: ignore[reportMissingImports]
 
 from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImports]
+from modules import shared, script_callbacks  # pyright: ignore[reportMissingImports]
 from sd_config_presets.config_components import dict_synonyms, load_custom_tracked_component_ids, EnumTypeName, log, log_error, log_critical_error, load_config_file, write_json_to_file
 from sd_config_presets.sd_components import createOpenFileInSystemAppButton, save_config, get_config_preset_dropdown_choices
 
@@ -21,6 +22,39 @@ CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME = f"{BASEDIR}/config-txt2img-
 CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME = f"{BASEDIR}/config-img2img-custom-tracked-components.txt"
 CONFIG_TXT2IMG_FILE_NAME = f"{BASEDIR}/config-txt2img.json"
 CONFIG_IMG2IMG_FILE_NAME = f"{BASEDIR}/config-img2img.json"
+
+# WebUI Settings 的 Config Presets 區段與選項鍵
+CONFIG_PRESETS_SETTINGS_SECTION = ("config_presets", "Config Presets")
+CONFIG_PRESETS_KEEP_BUILTIN_OPTION_KEY = "config_presets_keep_builtin_presets"
+
+# 保留預設名稱：永遠置頂、不可儲存、不可刪除、不寫入任何設定檔
+RESERVED_PRESET_NAME = "None"
+
+
+def keep_builtin_config_presets_enabled() -> bool:
+    """
+    讀取 WebUI Settings 選項：具有自訂預設時是否保留內建預設。
+    """
+    return getattr(shared.opts, CONFIG_PRESETS_KEEP_BUILTIN_OPTION_KEY, False)
+
+
+def on_ui_settings():
+    """
+    向 WebUI Settings 註冊 Config Presets 選項。
+    """
+    shared.opts.add_option(
+        CONFIG_PRESETS_KEEP_BUILTIN_OPTION_KEY,
+        shared.OptionInfo(
+            True,
+            "Keep built-in default presets when custom presets exist",
+            gr.Checkbox,
+            {"interactive": True},
+            section=CONFIG_PRESETS_SETTINGS_SECTION,
+        ),
+    )
+
+
+script_callbacks.on_ui_settings(on_ui_settings)
 
 
 def load_txt2img_custom_tracked_component_ids() -> list[str]:
@@ -574,15 +608,12 @@ script_{type_name}_xyz_plot_z_values
     return load_custom_tracked_component_ids(CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME, EnumTypeName.img2img, img2img_custom_tracked_components_default_text)
 
 
-def load_txt2img_config_file():
+def load_txt2img_config_file() -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     """
-    Load txt2img configuration presets from JSON file.
-    If file doesn't exist or is corrupted, creates default presets.
-    Returns a dictionary containing all txt2img configuration presets.
+    載入 txt2img 的內建預設預設檔與自訂預設（兩者脫鉤）。
 
-    从JSON文件加载txt2img配置预设。
-    如果文件不存在或损坏，创建默认预设。
-    返回包含所有txt2img配置预设的字典。
+    Returns:
+        tuple: (內建預設預設檔, 自訂預設；"None" 為保留項，已自設定檔剔除)
     """
     # Define type name for txt2img configuration
     # 为txt2img配置定义类型名称
@@ -597,7 +628,6 @@ def load_txt2img_config_file():
     # Default presets for txt2img configuration
     # txt2img配置的默认预设
     txt2img_config_presets = {
-        "None": {},
         "SD1.5 - 512x512": {
             "txt2img_width": 512,
             "txt2img_height": 512,
@@ -697,20 +727,18 @@ def load_txt2img_config_file():
         },
     }
 
-    # Call the generic _load_config_file function with specific parameters
-    # 调用通用的_load_config_file函数，传入特定参数
-    return load_config_file(CONFIG_TXT2IMG_FILE_NAME, type_name, txt2img_config_presets)
+    # 自訂預設與內建預設脫鉤；保留項不來自設定檔
+    custom_config_presets = load_config_file(CONFIG_TXT2IMG_FILE_NAME, type_name)
+    custom_config_presets.pop(RESERVED_PRESET_NAME, None)
+    return txt2img_config_presets, custom_config_presets
 
 
-def load_img2img_config_file():
+def load_img2img_config_file() -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     """
-    Load img2img configuration presets from JSON file.
-    If file doesn't exist or is corrupted, creates default presets.
-    Returns a dictionary containing all img2img configuration presets.
+    載入 img2img 的內建預設預設檔與自訂預設（兩者脫鉤）。
 
-    从JSON文件加载img2img配置预设。
-    如果文件不存在或损坏，创建默认预设。
-    返回包含所有img2img配置预设的字典。
+    Returns:
+        tuple: (內建預設預設檔, 自訂預設；"None" 為保留項，已自設定檔剔除)
     """
     # Define type name for img2img configuration
     # 为img2img配置定义类型名称
@@ -719,7 +747,6 @@ def load_img2img_config_file():
     # Default presets for img2img configuration
     # img2img配置的默认预设
     img2img_config_presets = {
-        "None": {},
         "Low denoising ------- denoising: 0.25, steps: 20, DPM++ 2M": {
             "img2img_sampling": "DPM++ 2M",
             "img2img_steps": 20,
@@ -752,9 +779,25 @@ def load_img2img_config_file():
         },
     }
 
-    # Call the generic _load_config_file function with specific parameters
-    # 调用通用的_load_config_file函数，传入特定参数
-    return load_config_file(CONFIG_IMG2IMG_FILE_NAME, type_name, img2img_config_presets)
+    # 自訂預設與內建預設脫鉤；保留項不來自設定檔
+    custom_config_presets = load_config_file(CONFIG_IMG2IMG_FILE_NAME, type_name)
+    custom_config_presets.pop(RESERVED_PRESET_NAME, None)
+    return img2img_config_presets, custom_config_presets
+
+
+def build_config_presets(default_presets: dict[str, dict[str, Any]], custom_config_presets: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """
+    建立 UI 顯示用的預設集合：內建預設與自訂預設脫鉤，同名時以自訂覆蓋內建。
+
+    具有自訂預設時是否保留內建預設，由 WebUI Settings 選項決定；
+    沒有任何自訂預設時一律顯示內建預設。保留項永遠置頂且不可變更。
+    """
+    keep_builtin = keep_builtin_config_presets_enabled() or len(custom_config_presets) == 0
+    merged_presets: dict[str, dict[str, Any]] = {RESERVED_PRESET_NAME: {}}
+    if keep_builtin:
+        merged_presets.update(default_presets)
+    merged_presets.update(custom_config_presets)
+    return merged_presets
 
 
 class Script(scripts.Script):
@@ -957,10 +1000,13 @@ class Script(scripts.Script):
         self.pending_xyz_dropdown_base_id: str | None = None
         self.pending_xyz_dropdown_label: str | None = None
 
-        # Load txt2img and img2img config files
-        # 加载txt2img和img2img配置文件
-        self.txt2img_config_presets: dict[str, dict[str, Any]] = load_txt2img_config_file()
-        self.img2img_config_presets: dict[str, dict[str, Any]] = load_img2img_config_file()
+        # 載入 txt2img/img2img 的內建預設與自訂預設（兩者脫鉤）
+        (self.txt2img_default_config_presets, self.txt2img_custom_config_presets) = load_txt2img_config_file()
+        (self.img2img_default_config_presets, self.img2img_custom_config_presets) = load_img2img_config_file()
+
+        # UI 顯示用集合：同名時以自訂預設覆蓋內建預設；儲存/刪除只作用於自訂集合
+        self.txt2img_config_presets: dict[str, dict[str, Any]] = build_config_presets(self.txt2img_default_config_presets, self.txt2img_custom_config_presets)
+        self.img2img_config_presets: dict[str, dict[str, Any]] = build_config_presets(self.img2img_default_config_presets, self.img2img_custom_config_presets)
 
 
 
@@ -1071,11 +1117,14 @@ class Script(scripts.Script):
                     index_type_components.append(component.elem_id)
 
             preset_values: list[str] = []
-            config_presets: dict[str, Any] = None  # pyright: ignore[reportAssignmentType]
+            config_presets: dict[str, Any] = None  # pyright: ignore[reportAssignmentType]          # 顯示用集合（內建＋自訂）
+            custom_config_presets: dict[str, Any] = None  # pyright: ignore[reportAssignmentType]    # 自訂專用集合（寫入設定檔）
             if self.is_txt2img:
                 config_presets = self.txt2img_config_presets
+                custom_config_presets = self.txt2img_custom_config_presets
             else:
                 config_presets = self.img2img_config_presets
+                custom_config_presets = self.img2img_custom_config_presets
 
             preset_values = list(config_presets.keys())
             # for dropdownValue in config_presets:
@@ -1172,40 +1221,50 @@ class Script(scripts.Script):
 
                     def delete_selected_preset(config_preset_name: str):
                         """
-                        Delete the selected preset from the configuration.
+                        刪除選取的自訂預設；內建預設與保留項不可刪除。
 
-                        删除选中的预设配置。
+                        删除选中的自定义预设；内建预设与保留项不可删除。
                         """
-                        if config_preset_name in config_presets.keys():
-                            del config_presets[config_preset_name]
+                        if config_preset_name == RESERVED_PRESET_NAME:
+                            log(f"The '{RESERVED_PRESET_NAME}' preset is reserved and can not be deleted")
+                            return gr.Dropdown.update()
+
+                        if config_preset_name in custom_config_presets:
+                            del custom_config_presets[config_preset_name]     # 僅刪除自訂來源
+                            config_presets.pop(config_preset_name, None)      # 同步移除顯示項
                             log(f"deleted: \"{config_preset_name}\"")
 
-                            write_json_to_file(config_presets, config_file_name)
+                            write_json_to_file(custom_config_presets, config_file_name)
 
                             preset_keys = list(config_presets.keys())
                             return gr.Dropdown.update(value=preset_keys[len(preset_keys)-1],
                                                         choices=get_config_preset_dropdown_choices(preset_keys),
                                                         )
+
+                        log(f"\"{config_preset_name}\" is a built-in preset and can not be deleted")
                         # do nothing if no value is selected
                         return gr.Dropdown.update()
 
                     def refresh_dropdown_button_click():
                         """
-                        Refresh the dropdown by reloading configuration presets from files.
-
-                        通过从文件重新加载配置预设来刷新下拉菜单。
+                        從設定檔重新載入自訂預設，並依目前 Settings 選項重建顯示集合。
                         """
                         if self.is_txt2img:
-                            self.txt2img_config_presets = load_txt2img_config_file()
-                            #new_config_presets = self.txt2img_config_presets
-                            config_presets.update(self.txt2img_config_presets)
-                            preset_values = list(self.txt2img_config_presets.keys())
+                            self.txt2img_custom_config_presets = load_txt2img_config_file()
+                            default_presets = self.txt2img_default_config_presets
+                            reloaded_custom_presets = self.txt2img_custom_config_presets
                         else:
-                            self.img2img_config_presets = load_img2img_config_file()
-                            #new_config_presets = self.img2img_config_presets
-                            config_presets.update(self.img2img_config_presets)
-                            preset_values = list(self.img2img_config_presets.keys())
+                            self.img2img_custom_config_presets = load_img2img_config_file()
+                            default_presets = self.img2img_default_config_presets
+                            reloaded_custom_presets = self.img2img_custom_config_presets
 
+                        # 以原地更新維持各閉包共享的 dict 參照不變
+                        custom_config_presets.clear()
+                        custom_config_presets.update(reloaded_custom_presets)
+                        config_presets.clear()
+                        config_presets.update(build_config_presets(default_presets, custom_config_presets))
+
+                        preset_values = list(config_presets.keys())
                         return gr.Dropdown.update(choices=get_config_preset_dropdown_choices(preset_values))
 
                     refresh_dropdown_button = ToolButton(
@@ -1286,7 +1345,7 @@ class Script(scripts.Script):
                             )
 
                             save_button.click(
-                                fn=save_config(config_presets, component_map, config_file_name),
+                                fn=save_config(config_presets, custom_config_presets, component_map, config_file_name),
                                 inputs=list(
                                     [save_textbox] + [fields_checkboxgroup] + [component_map[comp_name] for comp_name in
                                                                                 component_ids if

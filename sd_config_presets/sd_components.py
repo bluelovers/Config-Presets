@@ -39,9 +39,11 @@ def list_to_csv_string(data_list: list[str]) -> str:
         csv.writer(o).writerow(data_list)
         return o.getvalue().strip()
 
-def save_config(config_presets: dict[str, Any], component_map: dict[str, Any], config_file_name_path: str):
+def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str, Any], component_map: dict[str, Any], config_file_name_path: str):
     """
-    Save the current values on the UI to a new entry in the config file
+    將 UI 目前值儲存為新的預設條目。
+
+    僅更新並寫入自訂預設 (custom presets)；內建預設與保留項不受影響。
     """
 
     #log_debug("save_config()")
@@ -55,6 +57,11 @@ def save_config(config_presets: dict[str, Any], component_map: dict[str, Any], c
         if new_setting_name == "":
             # do nothing if no label entered in textbox
             # 如果在文本框中没有输入标签，则不执行任何操作
+            return gr.Dropdown.update(), gr.Textbox.update()
+
+        if new_setting_name == "None":
+            # "None" 為保留預設，永遠不允許儲存或覆寫
+            log("The 'None' preset is reserved and can not be saved or changed")
             return gr.Dropdown.update(), gr.Textbox.update()
 
         new_setting_map: dict[str, Any] = {}    # dict[str, Any]    {"txt2img_steps": 10, ...}
@@ -104,10 +111,11 @@ def save_config(config_presets: dict[str, Any], component_map: dict[str, Any], c
 
         #log_debug(f"new_setting_map = {new_setting_map}")
 
+        custom_config_presets.update({new_setting_name: new_setting_map})
+        write_json_to_file(custom_config_presets, config_file_name_path)
+        # 自訂預設與內建預設脫鉤：僅寫入自訂設定檔
         config_presets.update({new_setting_name: new_setting_map})
-        write_json_to_file(config_presets, config_file_name_path)
-        # 使用新设置映射更新配置预设
-        # 将配置预设写入JSON文件
+        # 同步更新顯示用集合（內建＋自訂）
 
         # log_debug(f"self.txt2img_config_preset_dropdown.choices before =\n{self.txt2img_config_preset_dropdown.choices}")
         # self.txt2img_config_preset_dropdown.choices = list(config_presets.keys())
