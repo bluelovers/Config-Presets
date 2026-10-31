@@ -296,7 +296,7 @@ class ConfigPresetUI:
             direct_ids: list[str] = [component_id for component_id in item.items
                                      if isinstance(component_id, str) and component_id in self.component_id_set and component_id not in self.derived_component_id_set]
 
-            with gr.Accordion(label=item.label, open=False, elem_id=f"script_config_preset_fields_group_{self._fields_group_index}"):
+            with gr.Accordion(label=item.label, open=True, elem_id=f"script_config_preset_fields_group_{self._fields_group_index}"):
                 self._fields_group_index += 1
 
                 if len(direct_ids) > 0:
