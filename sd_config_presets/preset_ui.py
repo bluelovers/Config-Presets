@@ -189,9 +189,13 @@ class ConfigPresetUI:
     def update_save_textbox(dropdown_value: str):
         """
         將 Config Presets 下拉選單的選取值同步到 New preset name 文字框。
+
+        保留預設「None」不是可儲存的名稱：選取時清空文字框，不寫入 "None"。
         """
         if dropdown_value is None or dropdown_value == "":
             return gr.Textbox.update()
+        if is_reserved_preset_name(dropdown_value):
+            return gr.Textbox.update(value="")
         return gr.Textbox.update(value=dropdown_value)
 
     @staticmethod
@@ -199,12 +203,14 @@ class ConfigPresetUI:
         """
         Handle add/remove button click event.
         Auto-populate textbox if empty when a preset is selected.
+        The reserved preset "None" is not a name and never populates the textbox.
 
         处理添加/删除按钮点击事件。
         如果选择了预设且文本框为空，则自动填充文本框。
+        保留预设「None」不是名称，不会填充文本框。
         """
         if save_textbox_text == "" or save_textbox_text is None:
-            if config_preset_dropdown_value != "" and config_preset_dropdown_value is not None:
+            if config_preset_dropdown_value != "" and config_preset_dropdown_value is not None and not is_reserved_preset_name(config_preset_dropdown_value):
                 # save textbox is empty, and we have a dropdown value selected
                 # auto-populate the save textbox so it's easier to overwrite existing config preset
                 # 保存文本框为空，并且我们选择了下拉菜单值
