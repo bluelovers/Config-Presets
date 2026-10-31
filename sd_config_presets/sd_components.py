@@ -39,7 +39,7 @@ def list_to_csv_string(data_list: list[str]) -> str:
         csv.writer(o).writerow(data_list)
         return o.getvalue().strip()
 
-def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str, Any], component_map: dict[str, Any], config_file_name_path: str, fields_group_count: int = 1):
+def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str, Any], component_map: dict[str, Any], config_file_name_path: str, fields_group_count: int = 1, derived_component_owner_ids: dict[str, str] | None = None):
     """
     將 UI 目前值儲存為新的預設條目。
 
@@ -48,7 +48,16 @@ def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str,
     Args:
         fields_group_count (int): 「Fields to save」CheckboxGroup 的數量（根層＋##@ 分組）；
                                   依序為函式前 N 個輸入，合併成一份待儲存欄位清單
+        derived_component_owner_ids (dict): 派生元件表 {派生 ID: 擁有者 ID}（由偵測層登錄）；
+                                            派生欄位不是獨立設定值，UI 不顯示，
+                                            隨擁有者一併儲存，擁有者值為空時以其值補寫
     """
+    derived_component_owner_ids = derived_component_owner_ids or {}
+
+    # 反查表：擁有者 ID → 派生 ID（首個為準），供擁有者值為空時取派生元件值
+    owner_to_derived_id: dict[str, str] = {}
+    for derived_id, owner_id in derived_component_owner_ids.items():
+        owner_to_derived_id.setdefault(owner_id, derived_id)
 
     #log_debug("save_config()")
     # closure keeps path in memory, it's a hack to get around how click or change expects values to be formatted
@@ -83,7 +92,13 @@ def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str,
 
         for i, component_id in enumerate(component_map.keys()):
 
-            if component_id not in fields_to_save_list:
+            # 派生欄位（偵測層查表登錄）不是可獨立勾選的設定（UI 不顯示），
+            # 隨其擁有者一併儲存，使預設載入時兩者同步
+            owner_id = derived_component_owner_ids.get(component_id)
+            if owner_id is not None:
+                if owner_id not in fields_to_save_list:
+                    continue
+            elif component_id not in fields_to_save_list:
                 #log(f"New preset '{new_setting_name}' will not include {component_id}")
                 # log(f"新预设'{new_setting_name}'将不包含{component_id}")
                 continue
@@ -107,12 +122,14 @@ def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str,
                         # 采样器的未知数据类型：{new_value}
                 else:
                     if new_value is None or (isinstance(new_value, str) and new_value.strip() == ""):
-                        # X/Y/Z plot 在非 csv_mode（dropdown 模式）時，實際值存於配對的 multiselect
-                        # "{component_id}_dropdown"、其 textbox 保持空白；
-                        # 沿用 xyz_grid.py 的做法，將該 dropdown 選擇儲存為 CSV 字串
-                        dropdown_value = component_value_map.get(f"{component_id}_dropdown")
-                        if isinstance(dropdown_value, list) and len(dropdown_value) > 0:
-                            new_value = list_to_csv_string(dropdown_value)
+                        # 擁有者（如 X/Y/Z plot 的 "*_values" textbox 於 dropdown 模式）值為空時，
+                        # 取其派生元件（配對的 multiselect）之值補寫；
+                        # 沿用 xyz_grid.py 的做法，list 類型儲存為 CSV 字串
+                        derived_id = owner_to_derived_id.get(component_id)
+                        if derived_id is not None:
+                            derived_value = component_value_map.get(derived_id)
+                            if isinstance(derived_value, list) and len(derived_value) > 0:
+                                new_value = list_to_csv_string(derived_value)
                     new_setting_map[component_id] = new_value
 
                 #log_debug(f"Saving '{component_id}' as: {new_setting_map[component_id]} ({new_value})")

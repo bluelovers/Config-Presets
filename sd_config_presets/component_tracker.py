@@ -19,6 +19,25 @@ from sd_config_presets.config_components import EnumTypeName, log_error  # pyrig
 # (very bottom of the txt2img/img2img image gallery)
 TRIGGER_COMPONENT_IDS: tuple[str, ...] = ("txt2img_generation_info_button", "img2img_generation_info_button")
 
+# X/Y/Z plot 配對下拉框的 ID 後綴 (companion dropdown suffix)
+XYZ_VALUES_DROPDOWN_SUFFIX: str = "_dropdown"
+
+
+def is_xyz_values_textbox_id(component_id: str) -> bool:
+    """
+    判斷是否為 X/Y/Z plot 的 values 文字框 ID（*_xyz_plot_*_values）。
+
+    此類元件的下一個 multiselect 會被自動捕獲為其配對下拉框。
+    """
+    return component_id.endswith("_values") and "_xyz_plot_" in component_id
+
+
+def xyz_values_dropdown_id(base_id: str) -> str:
+    """
+    由 X/Y/Z plot values 文字框 ID 建立其配對多選下拉框 ID。
+    """
+    return f"{base_id}{XYZ_VALUES_DROPDOWN_SUFFIX}"
+
 
 @dataclass(frozen=True)
 class ResolvedComponents:
@@ -29,11 +48,15 @@ class ResolvedComponents:
         component_map: 元件 ID → Gradio 元件；必備元件缺失時不會產出此結果
         component_ids: 實際追蹤到的元件 ID 順序清單，驅動 UI 輸入/輸出順序
         index_type_components: 型別為 "index" 的元件 ID，載入預設時需轉換為實際值
+        derived_component_owner_ids: 派生元件表 {派生 ID: 擁有者 ID}；
+                                     派生 ID 由機制自動建立、從屬於擁有者，
+                                     不是獨立的設定欄位（顯示層不顯示、儲存隨擁有者）
     """
 
     component_map: dict[str, Any]
     component_ids: list[str]
     index_type_components: list[str]
+    derived_component_owner_ids: dict[str, str]
 
 
 class ComponentTracker:
@@ -72,10 +95,33 @@ class ComponentTracker:
         # 組件標籤與 ui.py 中實際組件之間的映射，於 register_component() 依序填入
         self.component_map: dict[str, Any] = {k: None for k in self.component_ids}
 
+        # 派生元件表 {派生 ID: 擁有者 ID}：機制自動建立、從屬於擁有者的追蹤 ID。
+        # 不是獨立的設定欄位，由顯示層與儲存層查表區分（未來機制一律經 track_derived_component 登錄）
+        self.derived_component_owner_ids: dict[str, str] = {}
+
         # X/Y/Z plot 的 values 多選下拉框 (multiselect dropdown) 沒有 elem_id，無法以 ID 追蹤；
         # 以前一個建立的 "*_values" textbox 為錨點自動捕獲
         self._pending_xyz_dropdown_base_id: str | None = None
         self._pending_xyz_dropdown_label: str | None = None
+
+    def track_derived_component(self, component: Any, derived_id: str, owner_id: str):
+        """
+        登記派生元件：自動建立、僅供機制內部取值使用，不作為獨立設定欄位。
+
+        派生 ID 納入 component_map / component_ids 正常追蹤（作為事件輸入），
+        同時登錄派生表；顯示層不將其渲染為可勾選欄位，
+        儲存層使其隨擁有者一併進出預設。未來的自動捕獲機制（不只 X/Y/Z plot）
+        都應經由此表登錄，避免與獨立設定值混淆。
+
+        Args:
+            component: WebUI 剛建立的 Gradio 元件
+            derived_id: 派生 ID（如 script_*_values_dropdown）
+            owner_id: 擁有者元件 ID，派生欄位從屬於它
+        """
+        self.component_map[derived_id] = component     # 重建 UI 時覆蓋為新元件
+        if derived_id not in self.component_ids:
+            self.component_ids.append(derived_id)      # 自動納入追蹤，無需使用者設定
+        self.derived_component_owner_ids[derived_id] = owner_id
 
     def is_trigger_component(self, component: Any) -> bool:
         """
@@ -97,10 +143,12 @@ class ComponentTracker:
         # 以前一個元件為錨點捕獲，並以 multiselect 與 label 特徵驗證，驗證失敗即放棄（維持原有行為）
         if self._pending_xyz_dropdown_base_id is not None:
             if getattr(component, "multiselect", False) is True and getattr(component, "label", None) == self._pending_xyz_dropdown_label:
-                dropdown_component_id = f"{self._pending_xyz_dropdown_base_id}_dropdown"
-                self.component_map[dropdown_component_id] = component     # 重建 UI 時覆蓋為新元件
-                if dropdown_component_id not in self.component_ids:
-                    self.component_ids.append(dropdown_component_id)      # 自動納入追蹤，無需使用者設定
+                # 配對下拉框是派生欄位：隨其 "*_values" 文字框，不作為獨立設定值顯示
+                self.track_derived_component(
+                    component,
+                    derived_id=xyz_values_dropdown_id(self._pending_xyz_dropdown_base_id),
+                    owner_id=self._pending_xyz_dropdown_base_id,
+                )
             self._pending_xyz_dropdown_base_id = None
             self._pending_xyz_dropdown_label = None
 
@@ -108,7 +156,7 @@ class ComponentTracker:
         if component.elem_id in self.component_map:
             self.component_map[component.elem_id] = component
             #log_debug(f"found component: {component.elem_id} {component}")
-            if component.elem_id.endswith("_values") and "_xyz_plot_" in component.elem_id:
+            if is_xyz_values_textbox_id(component.elem_id):
                 # 下一個建立的元件即為其多選下拉框，先記下錨點
                 self._pending_xyz_dropdown_base_id = component.elem_id
                 self._pending_xyz_dropdown_label = getattr(component, "label", None)
@@ -152,4 +200,5 @@ class ComponentTracker:
             component_map=component_map,
             component_ids=component_ids,
             index_type_components=index_type_components,
+            derived_component_owner_ids=dict(self.derived_component_owner_ids),
         )

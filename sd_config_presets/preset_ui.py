@@ -62,6 +62,9 @@ class ConfigPresetUI:
         self.component_ids = resolved.component_ids
         self.component_id_set: set[str] = set(resolved.component_ids)
         self.index_type_components = resolved.index_type_components
+        # 派生欄位（偵測層自動建立、從屬於擁有者）：不渲染為可勾選選項，儲存時隨擁有者
+        self.derived_component_owner_ids = resolved.derived_component_owner_ids
+        self.derived_component_id_set: set[str] = set(resolved.derived_component_owner_ids)
         self.config_presets = config_presets
         self.custom_config_presets = custom_config_presets
         self.default_config_presets = default_config_presets
@@ -243,9 +246,12 @@ class ConfigPresetUI:
         建立「Fields to save」核取方塊區塊。
 
         根層元件直接列於主 CheckboxGroup；##@ 分組以可摺疊的 gr.Accordion 呈現。
+        派生欄位（*_values_dropdown 等偵測層自動建立的 ID）只供機制取值，
+        不是獨立的設定值選項，查派生表一律不顯示。
         """
         grouped_ids = self._collect_grouped_component_ids(self.tracked_component_items)
-        root_ids: list[str] = [component_id for component_id in self.component_ids if component_id not in grouped_ids]
+        root_ids: list[str] = [component_id for component_id in self.component_ids
+                               if component_id not in grouped_ids and component_id not in self.derived_component_id_set]
 
         root_checkboxgroup = gr.CheckboxGroup(
             choices=root_ids,
@@ -272,11 +278,13 @@ class ConfigPresetUI:
             if isinstance(item, str):
                 continue
 
-            renderable_ids = [component_id for component_id in flatten_tracked_component_items(item.items) if component_id in self.component_id_set]
+            renderable_ids = [component_id for component_id in flatten_tracked_component_items(item.items)
+                              if component_id in self.component_id_set and component_id not in self.derived_component_id_set]
             if len(renderable_ids) == 0:
                 continue    # 該分組下沒有項目存在，不顯示
 
-            direct_ids: list[str] = [component_id for component_id in item.items if isinstance(component_id, str) and component_id in self.component_id_set]
+            direct_ids: list[str] = [component_id for component_id in item.items
+                                     if isinstance(component_id, str) and component_id in self.component_id_set and component_id not in self.derived_component_id_set]
 
             with gr.Accordion(label=item.label, open=False, elem_id=f"script_config_preset_fields_group_{self._fields_group_index}"):
                 self._fields_group_index += 1
@@ -445,7 +453,7 @@ class ConfigPresetUI:
         tracked_components = [self.component_map[component_name] for component_name in self.component_ids if self.component_map[component_name] is not None]
 
         save_button.click(
-            fn=save_config(self.config_presets, self.custom_config_presets, self.component_map, self.config_file_name, fields_group_count=len(field_checkboxgroups)),
+            fn=save_config(self.config_presets, self.custom_config_presets, self.component_map, self.config_file_name, fields_group_count=len(field_checkboxgroups), derived_component_owner_ids=self.derived_component_owner_ids),
             inputs=list([save_textbox] + field_checkboxgroups + tracked_components),
             outputs=[config_preset_dropdown, save_textbox],
         )
