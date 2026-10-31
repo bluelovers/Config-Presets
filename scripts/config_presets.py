@@ -43,7 +43,7 @@ def on_ui_settings():
     shared.opts.add_option(
         CONFIG_PRESETS_KEEP_BUILTIN_OPTION_KEY,
         shared.OptionInfo(
-            True,
+            False,
             "Keep built-in default presets when custom presets exist",
             gr.Checkbox,
             {"interactive": True},
