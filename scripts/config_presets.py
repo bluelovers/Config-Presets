@@ -6,7 +6,7 @@ import modules.scripts as scripts  # pyright: ignore[reportMissingImports]
 import gradio as gr  # pyright: ignore[reportMissingImports]
 
 from modules import shared, script_callbacks  # pyright: ignore[reportMissingImports]
-from sd_config_presets.config_components import load_custom_tracked_component_ids, EnumTypeName, log, log_error
+from sd_config_presets.config_components import load_custom_tracked_component_items, flatten_tracked_component_items, EnumTypeName, TrackedComponentItem, log, log_error
 from sd_config_presets.config_file.preset_loaders import load_txt2img_config_file, load_img2img_config_file, build_config_presets
 from sd_config_presets.component_tracker import ComponentTracker
 from sd_config_presets.preset_ui import ConfigPresetUI
@@ -65,15 +65,16 @@ def on_ui_settings():
 script_callbacks.on_ui_settings(on_ui_settings)
 
 
-def load_txt2img_custom_tracked_component_ids() -> list[str]:
+def load_txt2img_custom_tracked_component_items() -> list[TrackedComponentItem]:
     """
-    Load custom tracked component IDs for txt2img mode.
-    This function loads component IDs that users want to track in addition to default ones.
-    Returns a list of component IDs that should be tracked for presets.
+    Load custom tracked components (with ##@ group structure) for txt2img mode.
+    This function loads component IDs that users want to track in addition to default ones,
+    preserving their collapsible group layout.
+    Returns a list of component IDs and groups that should be tracked for presets.
 
-    加载txt2img模式的自定义跟踪组件ID。
-    此函数加载用户想要跟踪的组件ID，除了默认的组件之外。
-    返回应该为预设跟踪的组件ID列表。
+    加载txt2img模式的自定义跟踪组件（含 ##@ 分组结构）。
+    此函数加载用户想要跟踪的组件ID，除了默认的组件之外，并保留其分组层级。
+    返回应该为预设跟踪的组件ID与分组列表。
     """
     type_name = EnumTypeName.txt2img.value
 
@@ -83,6 +84,7 @@ def load_txt2img_custom_tracked_component_ids() -> list[str]:
     # 第一次运行扩展或文件被删除，所以用默认值填充
     txt2img_custom_tracked_components_default_text = f"""# Put custom {type_name} tracked component IDs here. This will allow those fields to be saved as a config preset.
 # Lines starting with a # are ignored.
+# Wrap related IDs with "##@ <label>" ... "##@" to show them inside a collapsible group in the Fields to save section.
 # Component IDs can be found in the HTML (id="..."), in modules/ui.py (elem_id="..."), or in an extensions python code. IDs like "component-5890" won't work because the number at the end will change each startup.
 # Entering an invalid component ID here will cause this extension to error and not load. Components that do not have a value associated with them, such as tabs and accordions, are not supported.
 # Note that components on the top row of the UI cannot be added here, such as "setting_sd_model_checkpoint", "setting_sd_vae", and "setting_CLIP_stop_at_last_layers".
@@ -107,13 +109,15 @@ def load_txt2img_custom_tracked_component_ids() -> list[str]:
 # Script dropdown:
 #script_list
 
-# X/Y/Z plot (script):
+##@ X/Y/Z plot (script):
 script_{type_name}_xyz_plot_x_type
 script_{type_name}_xyz_plot_y_type
 script_{type_name}_xyz_plot_z_type
 script_{type_name}_xyz_plot_x_values
 script_{type_name}_xyz_plot_y_values
 script_{type_name}_xyz_plot_z_values
+
+##@
 
 # Latent Couple (extension):
 #cd_{type_name}_divisions
@@ -310,18 +314,19 @@ script_{type_name}_xyz_plot_z_values
 #script_{type_name}_adetailer_ad_controlnet_guidance_end_2nd
 """
 
-    return load_custom_tracked_component_ids(CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME, EnumTypeName.txt2img, txt2img_custom_tracked_components_default_text)
+    return load_custom_tracked_component_items(CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME, EnumTypeName.txt2img, txt2img_custom_tracked_components_default_text)
 
 
-def load_img2img_custom_tracked_component_ids() -> list[str]:
+def load_img2img_custom_tracked_component_items() -> list[TrackedComponentItem]:
     """
-    Load custom tracked component IDs for img2img mode.
-    This function loads component IDs that users want to track in addition to default ones.
-    Returns a list of component IDs that should be tracked for presets.
+    Load custom tracked components (with ##@ group structure) for img2img mode.
+    This function loads component IDs that users want to track in addition to default ones,
+    preserving their collapsible group layout.
+    Returns a list of component IDs and groups that should be tracked for presets.
 
-    加载img2img模式的自定义跟踪组件ID。
-    此函数加载用户想要跟踪的组件ID，除了默认的组件之外。
-    返回应该为预设跟踪的组件ID列表。
+    加载img2img模式的自定义跟踪组件（含 ##@ 分组结构）。
+    此函数加载用户想要跟踪的组件ID，除了默认的组件之外，并保留其分组层级。
+    返回应该为预设跟踪的组件ID与分组列表。
     """
     type_name = EnumTypeName.img2img.value
 
@@ -331,6 +336,7 @@ def load_img2img_custom_tracked_component_ids() -> list[str]:
     # 第一次运行扩展或文件被删除，所以用默认值填充
     img2img_custom_tracked_components_default_text = f"""# Put custom {type_name} tracked component IDs here. This will allow those fields to be saved as a config preset.
 # Lines starting with a # are ignored.
+# Wrap related IDs with "##@ <label>" ... "##@" to show them inside a collapsible group in the Fields to save section.
 # Component IDs can be found in the HTML (id="..."), in modules/ui.py (elem_id="..."), or in an extensions python code. IDs like "component-5890" won't work because the number at the end will change each startup.
 # Entering an invalid component ID here will cause this extension to error and not load. Components that do not have a value associated with them, such as tabs and accordions, are not supported.
 # Note that components on the top row of the UI cannot be added here, such as "setting_sd_model_checkpoint", "setting_sd_vae", and "setting_CLIP_stop_at_last_layers".
@@ -369,13 +375,15 @@ def load_img2img_custom_tracked_component_ids() -> list[str]:
 # Script dropdown:
 #script_list
 
-# X/Y/Z plot (script):
+##@ X/Y/Z plot (script):
 script_{type_name}_xyz_plot_x_type
 script_{type_name}_xyz_plot_y_type
 script_{type_name}_xyz_plot_z_type
 script_{type_name}_xyz_plot_x_values
 script_{type_name}_xyz_plot_y_values
 script_{type_name}_xyz_plot_z_values
+
+##@
 
 # Loopback (script):
 #script_loopback_loops
@@ -613,7 +621,7 @@ script_{type_name}_xyz_plot_z_values
 #ultimateupscale_save_seams_fix_image
 """
 
-    return load_custom_tracked_component_ids(CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME, EnumTypeName.img2img, img2img_custom_tracked_components_default_text)
+    return load_custom_tracked_component_items(CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME, EnumTypeName.img2img, img2img_custom_tracked_components_default_text)
 
 
 class Script(scripts.Script):
@@ -628,10 +636,10 @@ class Script(scripts.Script):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Load custom tracked components
-        # 加载自定义跟踪组件
-        txt2img_custom_tracked_components_ids = load_txt2img_custom_tracked_component_ids()
-        img2img_custom_tracked_components_ids = load_img2img_custom_tracked_component_ids()
+        # Load custom tracked components (含 ##@ 分組結構，分組由顯示層渲染為摺疊區塊)
+        # 加载自定义跟踪组件（含 ##@ 分组结构）
+        txt2img_custom_tracked_items = load_txt2img_custom_tracked_component_items()
+        img2img_custom_tracked_items = load_img2img_custom_tracked_component_items()
 
 
         # These are the settings from the UI that are saved for each preset
@@ -669,7 +677,7 @@ class Script(scripts.Script):
             # lllyasviel/stable-diffusion-webui-forge (Forge) https://github.com/lllyasviel/stable-diffusion-webui-forge
             "txt2img_distilled_cfg_scale",  # Flux model's CFG
         ]
-        self.txt2img_component_ids += txt2img_custom_tracked_components_ids # add the custom tracked components
+        self.txt2img_component_ids += flatten_tracked_component_items(txt2img_custom_tracked_items) # add the custom tracked components
 
         self.img2img_component_ids: list[str] = [
             "img2img_sampling",
@@ -697,7 +705,7 @@ class Script(scripts.Script):
             # lllyasviel/stable-diffusion-webui-forge (Forge) https://github.com/lllyasviel/stable-diffusion-webui-forge
             "img2img_distilled_cfg_scale",  # Flux model's CFG
         ]
-        self.img2img_component_ids += img2img_custom_tracked_components_ids # add the custom tracked components
+        self.img2img_component_ids += flatten_tracked_component_items(img2img_custom_tracked_items) # add the custom tracked components
 
         # Optional IDs don't crash the extension if no associated component is found.
         # These could be legacy IDs from older versions of the Web UI/extensions, or IDs from another UI (Vlad's SD.Next).
@@ -824,6 +832,10 @@ class Script(scripts.Script):
             custom_tracked_components_config_file_name=CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME,
         )
 
+        # ##@ 分組樹狀結構：供顯示層將自訂追蹤元件渲染為可摺疊區塊
+        self.txt2img_tracked_component_items: list[TrackedComponentItem] = txt2img_custom_tracked_items
+        self.img2img_tracked_component_items: list[TrackedComponentItem] = img2img_custom_tracked_items
+
         # 載入 txt2img/img2img 的內建預設與自訂預設（兩者脫鉤）
         (self.txt2img_default_config_presets, self.txt2img_custom_config_presets) = load_txt2img_config_file(CONFIG_TXT2IMG_FILE_NAME)
         (self.img2img_default_config_presets, self.img2img_custom_config_presets) = load_img2img_config_file(CONFIG_IMG2IMG_FILE_NAME)
@@ -883,12 +895,14 @@ class Script(scripts.Script):
             default_config_presets = self.txt2img_default_config_presets
             config_file_name = CONFIG_TXT2IMG_FILE_NAME
             custom_tracked_components_config_file_name = CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME
+            tracked_component_items = self.txt2img_tracked_component_items
         else:
             config_presets = self.img2img_config_presets
             custom_config_presets = self.img2img_custom_config_presets
             default_config_presets = self.img2img_default_config_presets
             config_file_name = CONFIG_IMG2IMG_FILE_NAME
             custom_tracked_components_config_file_name = CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME
+            tracked_component_items = self.img2img_tracked_component_items
 
         # 顯示層：建立 Config Presets UI（下拉選單、欄位複選框組、工具按鈕與事件處理）
         ConfigPresetUI(
@@ -901,6 +915,7 @@ class Script(scripts.Script):
             config_file_name=config_file_name,
             custom_tracked_components_config_file_name=custom_tracked_components_config_file_name,
             keep_builtin_config_presets_enabled=keep_builtin_config_presets_enabled,
+            tracked_component_items=tracked_component_items,
         ).build()
 
 

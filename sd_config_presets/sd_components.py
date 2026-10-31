@@ -39,20 +39,28 @@ def list_to_csv_string(data_list: list[str]) -> str:
         csv.writer(o).writerow(data_list)
         return o.getvalue().strip()
 
-def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str, Any], component_map: dict[str, Any], config_file_name_path: str):
+def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str, Any], component_map: dict[str, Any], config_file_name_path: str, fields_group_count: int = 1):
     """
     將 UI 目前值儲存為新的預設條目。
 
     僅更新並寫入自訂預設 (custom presets)；內建預設與保留項不受影響。
+
+    Args:
+        fields_group_count (int): 「Fields to save」CheckboxGroup 的數量（根層＋##@ 分組）；
+                                  依序為函式前 N 個輸入，合併成一份待儲存欄位清單
     """
 
     #log_debug("save_config()")
     # closure keeps path in memory, it's a hack to get around how click or change expects values to be formatted
-    def func(new_setting_name: str, fields_to_save_list, *new_setting):
-        #log_debug(f"save_config() func() new_setting_name={new_setting_name} *new_setting={new_setting}")
+    def func(new_setting_name: str, *args):
+        #log_debug(f"save_config() func() new_setting_name={new_setting_name} *args={args}")
         #log_debug(f"config_presets()={config_presets}")
         #log_debug(f"component_map()={component_map}")
         #log_debug(f"config_file_name()={config_file_name}")
+
+        # 前 fields_group_count 個參數為各 CheckboxGroup 勾選的元件 ID，其餘為元件目前值
+        fields_to_save_list: list[str] = [component_id for group_value in args[:fields_group_count] for component_id in (group_value or [])]
+        new_setting = args[fields_group_count:]
 
         if new_setting_name == "":
             # do nothing if no label entered in textbox

@@ -17,10 +17,9 @@ import gradio as gr  # pyright: ignore[reportMissingImports]
 from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImports]
 
 from sd_config_presets.component_tracker import ResolvedComponents
-from sd_config_presets.config_components import dict_synonyms, is_reserved_preset_name, log, log_critical_error, write_json_to_file, RESERVED_PRESET_NAME  # pyright: ignore[reportMissingImports]
+from sd_config_presets.config_components import dict_synonyms, is_reserved_preset_name, log, log_critical_error, write_json_to_file, RESERVED_PRESET_NAME, EnumTypeName, flatten_tracked_component_items, TrackedComponentItem  # pyright: ignore[reportMissingImports]
 from sd_config_presets.config_file.preset_loaders import load_txt2img_config_file, load_img2img_config_file, build_config_presets  # pyright: ignore[reportMissingImports]
 from sd_config_presets.sd_components import createOpenFileInSystemAppButton, save_config, get_config_preset_dropdown_choices  # pyright: ignore[reportMissingImports]
-from sd_config_presets.config_components import EnumTypeName
 
 
 class ConfigPresetUI:
@@ -42,6 +41,7 @@ class ConfigPresetUI:
         config_file_name: str,
         custom_tracked_components_config_file_name: str,
         keep_builtin_config_presets_enabled: Callable[[], bool],
+        tracked_component_items: list[TrackedComponentItem],
     ):
         """
         Args:
@@ -54,11 +54,13 @@ class ConfigPresetUI:
             config_file_name: 自訂預設 JSON 檔路徑
             custom_tracked_components_config_file_name: 自訂追蹤元件設定檔路徑
             keep_builtin_config_presets_enabled: 讀取 Settings 選項的回呼，重新整理時重新讀取
+            tracked_component_items: 自訂追蹤元件的 ##@ 分組樹狀結構，驅動「Fields to save」分組顯示
         """
         self.type_name = type_name
         self.is_txt2img = type_name == EnumTypeName.txt2img
         self.component_map = resolved.component_map
         self.component_ids = resolved.component_ids
+        self.component_id_set: set[str] = set(resolved.component_ids)
         self.index_type_components = resolved.index_type_components
         self.config_presets = config_presets
         self.custom_config_presets = custom_config_presets
@@ -67,6 +69,12 @@ class ConfigPresetUI:
         self.config_file_name = config_file_name
         self.custom_tracked_components_config_file_name = custom_tracked_components_config_file_name
         self.keep_builtin_config_presets_enabled = keep_builtin_config_presets_enabled
+        self.tracked_component_items = tracked_component_items
+
+        # build() 時依序收錄「Fields to save」的 CheckboxGroup 與其涵蓋的元件 ID：
+        # [0] 為根層，其後為 ##@ 分組（含巢狀），供事件輸出與欄位過濾使用
+        self._fields_checkbox_groups: list[tuple[gr.CheckboxGroup, list[str]]] = []
+        self._fields_group_index: int = 0
 
     def get_config_preset(self, dropdown_value: str) -> dict[str, Any]:
         """
@@ -84,13 +92,14 @@ class ConfigPresetUI:
                         id in config_preset.keys()] or self.component_ids.copy()
         return filtered_ids
 
-    def update_fields_checkboxgroup(self, dropdown_value: str):
+    def update_fields_checkboxgroups(self, dropdown_value: str):
         """
-        依選取預設包含的欄位更新「Fields to save」複選框組。
+        依選取預設包含的欄位，依序更新所有「Fields to save」CheckboxGroup（根層＋##@ 分組）。
         """
         config_preset = self.get_config_preset(dropdown_value)
-        filtered_ids = self.get_filtered_ids(config_preset)
-        return gr.update(value=filtered_ids)
+        filtered_ids = set(self.get_filtered_ids(config_preset))
+        return [gr.update(value=[component_id for component_id in group_ids if component_id in filtered_ids])
+                for _, group_ids in self._fields_checkbox_groups]
 
     def config_preset_dropdown_change(self, dropdown_value: str, *components_value):
         """
@@ -218,28 +227,85 @@ class ConfigPresetUI:
         """
         return gr.Row.update(visible=False), gr.Button.update(visible=False), gr.Button.update(visible=True), gr.Button.update(visible=True), gr.Button.update(visible=False), gr.Button.update(visible=False), gr.Button.update(visible=False)
 
+    @staticmethod
+    def _collect_grouped_component_ids(items: list[TrackedComponentItem]) -> set[str]:
+        """
+        收集所有 ##@ 分組（含巢狀）涵蓋的元件 ID；根層項目不在此集合。
+        """
+        grouped_ids: set[str] = set()
+        for item in items:
+            if not isinstance(item, str):
+                grouped_ids.update(flatten_tracked_component_items(item.items))
+        return grouped_ids
+
+    def _render_fields_to_save(self):
+        """
+        建立「Fields to save」核取方塊區塊。
+
+        根層元件直接列於主 CheckboxGroup；##@ 分組以可摺疊的 gr.Accordion 呈現。
+        """
+        grouped_ids = self._collect_grouped_component_ids(self.tracked_component_items)
+        root_ids: list[str] = [component_id for component_id in self.component_ids if component_id not in grouped_ids]
+
+        root_checkboxgroup = gr.CheckboxGroup(
+            choices=root_ids,
+            value=root_ids.copy(),    #check all checkboxes by default
+            label="Fields to save",
+            show_label=True,
+            interactive=True,
+            elem_id="script_config_preset_fields_to_save",
+        )
+        # 复选框组值，默认选中所有复选框
+        # 复选框组，用于选择要保存的字段
+        self._fields_checkbox_groups.append((root_checkboxgroup, root_ids))
+
+        self._render_field_groups(self.tracked_component_items)
+
+    def _render_field_groups(self, items: list[TrackedComponentItem]):
+        """
+        遞迴建立 ##@ 分組的摺疊區塊（可多層巢狀）。
+
+        該分組下沒有任何可顯示項目（直屬或巢狀元件皆缺失）時整組略過不顯示；
+        直屬項目置於本層 CheckboxGroup，巢狀分組繼續向下遞迴。
+        """
+        for item in items:
+            if isinstance(item, str):
+                continue
+
+            renderable_ids = [component_id for component_id in flatten_tracked_component_items(item.items) if component_id in self.component_id_set]
+            if len(renderable_ids) == 0:
+                continue    # 該分組下沒有項目存在，不顯示
+
+            direct_ids: list[str] = [component_id for component_id in item.items if isinstance(component_id, str) and component_id in self.component_id_set]
+
+            with gr.Accordion(label=item.label, open=False, elem_id=f"script_config_preset_fields_group_{self._fields_group_index}"):
+                self._fields_group_index += 1
+
+                if len(direct_ids) > 0:
+                    checkboxgroup = gr.CheckboxGroup(
+                        choices=direct_ids,
+                        value=direct_ids.copy(),    #check all checkboxes by default
+                        interactive=True,
+                        show_label=False,
+                    )
+                    self._fields_checkbox_groups.append((checkboxgroup, direct_ids))
+
+                self._render_field_groups(item.items)    # 巢狀子分組
+
     def build(self):
         """
         建立 Config Presets 的 Gradio 介面並掛載事件處理。
 
         對應原 after_component() 的 UI 建構區段；在 generation info 按鈕（圖庫最底部）
         建立時呼叫，使本區塊位於所有追蹤元件之後。
+
+        依賴 CheckboxGroup 建立時機的事件（儲存輸入、欄位過濾輸出）在
+        「Fields to save」區塊完成後才註冊。
         """
         #log_debug("Creating dropdown values...")
         #log_debug("key/value pairs in component_map:")
 
         preset_values = list(self.config_presets.keys())
-
-        fields_checkboxgroup_value = self.component_ids.copy()
-        fields_checkboxgroup = gr.CheckboxGroup(choices=self.component_ids,
-                                                value=fields_checkboxgroup_value,    #check all checkboxes by default
-                                                label="Fields to save",
-                                                show_label=True,
-                                                interactive=True,
-                                                elem_id="script_config_preset_fields_to_save",
-                                                ).unrender() #we need to define this early on so that it can be used as an input for another function
-        # 复选框组值，默认选中所有复选框
-        # 复选框组，用于选择要保存的字段
 
         with gr.Box(elem_id=f"config_preset_wrapper_{self.type_name.value}"):
             with gr.Row(elem_id="config_preset_dropdown_row"):
@@ -258,12 +324,6 @@ class ConfigPresetUI:
                         inputs=[config_preset_dropdown, *components],
                         outputs=components
                         )
-                    config_preset_dropdown.change(
-                        fn=self.update_fields_checkboxgroup,
-                        show_progress=False,
-                        inputs=[config_preset_dropdown],
-                        outputs=[fields_checkboxgroup]
-                    )
                 except AttributeError:
                     print(traceback.format_exc())   # prints the exception stacktrace
                     log_critical_error("The Config-Presets extension encountered a fatal error. A component required by this extension no longer exists in the Web UI. This is most likely due to the A1111 Web UI being updated. Try updating the Config-Presets extension. If that doesn't work, please post a bug report at https://github.com/Zyin055/Config-Presets/issues and delete your extensions/Config-Presets folder until an update is published.")
@@ -317,12 +377,6 @@ class ConfigPresetUI:
                     show_progress=False,
                     outputs=components,
                 )
-                reapply_button.click(
-                    fn=self.update_fields_checkboxgroup,
-                    inputs=[config_preset_dropdown],
-                    show_progress=False,
-                    outputs=[fields_checkboxgroup],
-                )
 
                 add_remove_button = ToolButton(
                     value="🖌️",
@@ -343,15 +397,6 @@ class ConfigPresetUI:
                             value="💾",
                             variant="primary",
                             elem_id="script_config_preset_save_button",
-                        )
-
-                        save_button.click(
-                            fn=save_config(self.config_presets, self.custom_config_presets, self.component_map, self.config_file_name),
-                            inputs=list(
-                                [save_textbox] + [fields_checkboxgroup] + [self.component_map[comp_name] for comp_name in
-                                                                            self.component_ids if
-                                                                            self.component_map[comp_name] is not None]),
-                            outputs=[config_preset_dropdown, save_textbox],
                         )
 
                         # Config Presets 選取變更時（含儲存、刪除後的自動切換）同步 New preset name
@@ -380,7 +425,8 @@ class ConfigPresetUI:
                         )
 
                     with gr.Row():
-                        fields_checkboxgroup.render()
+                        with gr.Column():
+                            self._render_fields_to_save()
 
                     with gr.Row():
                         with gr.Column(scale=1):
@@ -393,3 +439,27 @@ class ConfigPresetUI:
                             )
                         with gr.Column(scale=2):
                             pass
+
+        # 「Fields to save」的各 CheckboxGroup（根層＋##@ 分組）建立完成後才可註冊的事件
+        field_checkboxgroups = [checkboxgroup for checkboxgroup, _ in self._fields_checkbox_groups]
+        tracked_components = [self.component_map[component_name] for component_name in self.component_ids if self.component_map[component_name] is not None]
+
+        save_button.click(
+            fn=save_config(self.config_presets, self.custom_config_presets, self.component_map, self.config_file_name, fields_group_count=len(field_checkboxgroups)),
+            inputs=list([save_textbox] + field_checkboxgroups + tracked_components),
+            outputs=[config_preset_dropdown, save_textbox],
+        )
+
+        # 選取預設時過濾各 CheckboxGroup 的勾選欄位
+        config_preset_dropdown.change(
+            fn=self.update_fields_checkboxgroups,
+            show_progress=False,
+            inputs=[config_preset_dropdown],
+            outputs=field_checkboxgroups,
+        )
+        reapply_button.click(
+            fn=self.update_fields_checkboxgroups,
+            inputs=[config_preset_dropdown],
+            show_progress=False,
+            outputs=field_checkboxgroups,
+        )

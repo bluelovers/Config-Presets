@@ -12,6 +12,7 @@ IDs from configuration files and handle logging.
 它提供了从配置文件读取组件ID和处理日志的工具。
 """
 
+from dataclasses import dataclass
 from enum import Enum, unique
 import json
 from typing import IO, Any
@@ -72,17 +73,127 @@ def log_debug(text: str):
     print(f"[DEBUG][Config Presets] {text}")
 
 
+# 追蹤元件分組標記 (group marker)：##@ <label> 開啟分組、##@ 關閉分組，@ 的數量代表層級
+TRACKED_GROUP_MARKER: str = "##@"
+
+
+@dataclass
+class TrackedComponentGroup:
+    """
+    追蹤元件設定檔中 ##@ ... ##@ 區塊定義的分組 (group)。
+
+    分組會將追蹤清單切割：標記之前的元件 ID 屬根層，區塊內的屬本分組，
+    關閉標記之後的元件 ID 回到根層；分組可多層巢狀。
+
+    Attributes:
+        label (str): 分組標題，顯示於 UI 摺疊區塊的標頭
+        items (list[TrackedComponentItem]): 分組內容，依序為元件 ID (str) 與巢狀分組
+    """
+    label: str
+    items: list["TrackedComponentItem"]
+
+
+# 一個分組項目：元件 ID (str) 或分組 (TrackedComponentGroup)
+TrackedComponentItem = str | TrackedComponentGroup
+
+
+def _parse_tracked_component_items(file: list[str] | IO[str]) -> list[TrackedComponentItem]:
+    """
+    Parse tracked components into an ordered tree with ##@ group markers.
+
+    將追蹤元件解析為含 ##@ 分組標記的有序樹狀結構。
+
+    分組語法 (group syntax)，每多一個 @ 則多一層：
+        ##@ <label>   開啟分組 (open a group at level 1)；##@@ <label> 為 level 2
+        ##@           關閉分組 (close a group at level 1)；##@@ 為 level 2
+
+    以單一 # 開頭的行為註解 (comment)、空白行忽略；
+    標記層級不符時記錄錯誤並略過該行，檔案結尾未關閉的分組記錄錯誤後視為已關閉。
+
+    Args:
+        file (list[str] | IO[str]): File object or list of strings to parse / 要解析的文件对象或字符串列表
+
+    Returns:
+        list[TrackedComponentItem]: 依序排列的元件 ID 與分組 / ordered component IDs and groups
+    """
+    root: list[TrackedComponentItem] = []
+    open_groups: list[TrackedComponentGroup] = []   # 目前開啟的分組；index 即層級 - 1
+
+    def current_items() -> list[TrackedComponentItem]:
+        return open_groups[-1].items if len(open_groups) > 0 else root
+
+    for raw_line in file:
+        line = raw_line.strip()
+        if line == "":
+            continue
+
+        if line.startswith(TRACKED_GROUP_MARKER):
+            rest = line[len(TRACKED_GROUP_MARKER):]
+            at_count = 0
+            while at_count < len(rest) and rest[at_count] == "@":
+                at_count += 1
+            level = 1 + at_count
+            label = rest[at_count:].strip()
+
+            if label != "":
+                # 開啟分組：層級必須緊接目前層級
+                if level != len(open_groups) + 1:
+                    log_error(f"Invalid group marker '{line}': expected level {len(open_groups) + 1} at this position, ignoring it")
+                    continue
+                group = TrackedComponentGroup(label=label, items=[])
+                current_items().append(group)
+                open_groups.append(group)
+            else:
+                # 關閉分組：關閉該層及其內層（內層未關閉時視為一併關閉）
+                if level > len(open_groups):
+                    log_error(f"Invalid group marker '{line}': no open group at level {level}, ignoring it")
+                    continue
+                del open_groups[level - 1:]
+            continue
+
+        if line.startswith("#"):
+            continue    # 註解 (comment)
+
+        current_items().append(line)
+
+    if len(open_groups) > 0:
+        labels = ", ".join(f"'{group.label}'" for group in open_groups)
+        log_error(f"Group marker(s) left unclosed at end of file: {labels}, treating them as closed")
+
+    return root
+
+
+def flatten_tracked_component_items(items: list[TrackedComponentItem]) -> list[str]:
+    """
+    將樹狀結構攤平為元件 ID 清單，維持檔案中的排列順序。
+
+    Args:
+        items (list[TrackedComponentItem]): 分組解析結果 / parsed group items
+
+    Returns:
+        list[str]: 全部元件 ID（含巢狀分組）/ all component IDs including nested groups
+    """
+    component_ids: list[str] = []
+    for item in items:
+        if isinstance(item, str):
+            component_ids.append(item)
+        else:
+            component_ids.extend(flatten_tracked_component_items(item.items))
+    return component_ids
+
+
 def _parse_config_components(file: list[str] | IO[str], components_ids: list[str] = []) -> list[str]:  # pyright: ignore[reportCallInDefaultInitializer]
     """
     Parse configuration components from a file or list of strings.
 
     从文件或字符串列表中解析配置组件。
 
-    This private function reads through lines of text, filters out comments and empty lines,
-    and extracts valid component IDs. It's used internally to process configuration files
-    that define which UI components should be tracked by the Config-Presets extension.
+    This private function parses the file with group markers (##@) and flattens
+    the result to a plain component ID list. It's used internally to process
+    configuration files that define which UI components should be tracked by
+    the Config-Presets extension.
 
-    这个私有函数读取文本行，过滤掉注释和空行，并提取有效的组件ID。
+    这个私有函数以分组标记（##@）解析文件后攤平为纯组件ID列表。
     它在内部用于处理定义Config-Presets扩展应该跟踪哪些UI组件的配置文件。
 
     Args:
@@ -101,28 +212,59 @@ def _parse_config_components(file: list[str] | IO[str], components_ids: list[str
     if (not components_ids):
         components_ids = []
 
-    for line in file:
-        line = line.strip()
-        if not line.startswith("#") and line != "":  # ignore lines that start with # or are empty
-            # 忽略以#开头的行或空行
-            components_ids.append(line)
-            # log_debug(f"Added txt2img custom tracked component: {line}")
-            # log_debug(f"添加txt2img自定义跟踪组件：{line}")
+    components_ids.extend(flatten_tracked_component_items(_parse_tracked_component_items(file)))
     return components_ids
+
+
+def load_custom_tracked_component_items(file_path: str, type_name: EnumTypeName, default_config: str) -> list[TrackedComponentItem]:
+    """
+    Load custom tracked components (with ##@ group structure) from a configuration file.
+
+    从配置文件加载自定义跟踪组件（含 ##@ 分组结构）。
+
+    This function attempts to parse component IDs and groups from a specified
+    configuration file. If the file doesn't exist (first run or deleted), it
+    creates a new file with default configuration and logs the action.
+
+    该函数尝试从指定的配置文件中解析组件ID与分组。
+    如果文件不存在（首次运行或已删除），它会创建一个包含默认配置的新文件并记录此操作。
+
+    Args:
+        file_path (str): Path to the configuration file / 配置文件的路径
+        type_name (EnumTypeName): Type of configuration (txt2img or img2img) / 配置类型（txt2img或img2img）
+        default_config (str): Default configuration content to write if file doesn't exist /
+                              如果文件不存在时要写入的默认配置内容
+
+    Returns:
+        list[TrackedComponentItem]: 解析結果；檔案剛建立時為空列表
+                                    / parsed items; empty list if the file was just created
+    """
+    try:
+        with open(file_path, "r") as file:
+            return _parse_tracked_component_items(file)
+    except FileNotFoundError:
+        # config file not found
+        # 配置文件未找到
+        # First time running the extension or it was deleted, so fill it with default values
+        # 首次运行扩展或文件被删除，所以用默认值填充
+        _write_text_to_file(default_config, file_path)
+        log(f"{type_name.value} custom tracked components config file not found, created default config at {file_path}")
+
+    return []
 
 
 def load_custom_tracked_component_ids(file_path: str, type_name: EnumTypeName, default_config: str) -> list[str]:
     """
     Load custom tracked component IDs from a configuration file.
 
-    从配置文件加载自定义跟踪组件ID。
+    从配置文件加载自定义跟踪组件ID（攤平 ##@ 分组结构后的清单）。
 
     This function attempts to read component IDs from a specified configuration file.
     If the file doesn't exist (first run or deleted), it creates a new file with default
     configuration and logs the action. This ensures the extension always has a valid
     configuration file to work with.
 
-    该函数尝试从指定的配置文件中读取组件ID。
+    该函数尝试从指定的配置文件中读取组件ID（攤平分组结构）。
     如果文件不存在（首次运行或已删除），它会创建一个包含默认配置的新文件
     并记录此操作。这确保扩展始终有有效的配置文件可以使用。
 
@@ -142,20 +284,7 @@ def load_custom_tracked_component_ids(file_path: str, type_name: EnumTypeName, d
         - 如果文件不存在，则使用默认内容创建配置文件
         - 记录文件创建操作
     """
-    components_ids: list[str] = []
-    try:
-        with open(file_path, "r") as file:
-            components_ids = _parse_config_components(file)
-    except FileNotFoundError:
-        # config file not found
-        # 配置文件未找到
-        # First time running the extension or it was deleted, so fill it with default values
-        # 首次运行扩展或文件被删除，所以用默认值填充
-        _write_text_to_file(default_config, file_path)
-        log(f"{type_name.value} custom tracked components config file not found, created default config at {file_path}")
-        # log(f"{type_name}自定义跟踪组件配置文件未找到，在{file_path}创建了默认配置")
-
-    return components_ids
+    return flatten_tracked_component_items(load_custom_tracked_component_items(file_path, type_name, default_config))
 
 
 def _write_text_to_file(text: str, file_path: str):
