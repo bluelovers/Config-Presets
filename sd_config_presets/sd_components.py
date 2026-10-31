@@ -2,7 +2,7 @@
 import csv
 from io import StringIO
 from typing import Any
-from sd_config_presets.config_components import log, log_error, write_json_to_file
+from sd_config_presets.config_components import log, log_error, write_json_to_file, is_reserved_preset_name  # pyright: ignore[reportMissingImports]
 from modules.sd_samplers import samplers_map, samplers  # pyright: ignore[reportMissingImports]
 import gradio as gr  # pyright: ignore[reportMissingImports]
 from sd_config_presets.utils import open_file_in_system_app
@@ -59,8 +59,8 @@ def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str,
             # 如果在文本框中没有输入标签，则不执行任何操作
             return gr.Dropdown.update(), gr.Textbox.update()
 
-        if new_setting_name == "None":
-            # "None" 為保留預設，永遠不允許儲存或覆寫
+        if is_reserved_preset_name(new_setting_name):
+            # "None" 為保留預設（共用判斷，不區分大小寫），永遠不允許儲存或覆寫
             log("The 'None' preset is reserved and can not be saved or changed")
             return gr.Dropdown.update(), gr.Textbox.update()
 

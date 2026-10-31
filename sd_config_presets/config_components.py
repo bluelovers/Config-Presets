@@ -195,6 +195,23 @@ def write_json_to_file(json_data: Any, file_path: str):
     with open(file_path, "w") as file:
         file.write(json.dumps(json_data, indent=2))
 
+# 保留預設名稱：永遠置頂、不可儲存、不可刪除、不寫入任何設定檔
+RESERVED_PRESET_NAME = "None"
+
+
+def is_reserved_preset_name(name: str) -> bool:
+    """
+    判斷名稱是否為保留預設（None），不區分大小寫。
+    """
+    return isinstance(name, str) and name.casefold() == RESERVED_PRESET_NAME.casefold()
+
+
+def strip_reserved_preset(presets: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """
+    無視並剔除集合中的保留預設（None），不區分大小寫。
+    """
+    return {name: value for name, value in presets.items() if not is_reserved_preset_name(name)}
+
 def load_config_file(file_path: str, type_name: EnumTypeName) -> dict[str, dict[str, Any]]:
     """
     從 JSON 檔載入自訂預設 (custom presets)，與內建預設脫鉤。

@@ -7,7 +7,7 @@ import gradio as gr  # pyright: ignore[reportMissingImports]
 
 from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImports]
 from modules import shared, script_callbacks  # pyright: ignore[reportMissingImports]
-from sd_config_presets.config_components import dict_synonyms, load_custom_tracked_component_ids, EnumTypeName, log, log_error, log_critical_error, load_config_file, write_json_to_file
+from sd_config_presets.config_components import dict_synonyms, load_custom_tracked_component_ids, EnumTypeName, log, log_error, log_critical_error, load_config_file, write_json_to_file, RESERVED_PRESET_NAME, is_reserved_preset_name, strip_reserved_preset
 from sd_config_presets.sd_components import createOpenFileInSystemAppButton, save_config, get_config_preset_dropdown_choices
 
 # Base directory path for the Config-Presets extension
@@ -26,9 +26,6 @@ CONFIG_IMG2IMG_FILE_NAME = f"{BASEDIR}/config-img2img.json"
 # WebUI Settings 的 Config Presets 區段與選項鍵
 CONFIG_PRESETS_SETTINGS_SECTION = ("config_presets", "Config Presets")
 CONFIG_PRESETS_KEEP_BUILTIN_OPTION_KEY = "config_presets_keep_builtin_presets"
-
-# 保留預設名稱：永遠置頂、不可儲存、不可刪除、不寫入任何設定檔
-RESERVED_PRESET_NAME = "None"
 
 
 def keep_builtin_config_presets_enabled() -> bool:
@@ -727,9 +724,9 @@ def load_txt2img_config_file() -> tuple[dict[str, dict[str, Any]], dict[str, dic
         },
     }
 
-    # 自訂預設與內建預設脫鉤；保留項不來自設定檔
+    # 自訂預設與內建預設脫鉤；無視設定檔中的保留項（不區分大小寫）
     custom_config_presets = load_config_file(CONFIG_TXT2IMG_FILE_NAME, type_name)
-    custom_config_presets.pop(RESERVED_PRESET_NAME, None)
+    custom_config_presets = strip_reserved_preset(custom_config_presets)
     return txt2img_config_presets, custom_config_presets
 
 
@@ -779,9 +776,9 @@ def load_img2img_config_file() -> tuple[dict[str, dict[str, Any]], dict[str, dic
         },
     }
 
-    # 自訂預設與內建預設脫鉤；保留項不來自設定檔
+    # 自訂預設與內建預設脫鉤；無視設定檔中的保留項（不區分大小寫）
     custom_config_presets = load_config_file(CONFIG_IMG2IMG_FILE_NAME, type_name)
-    custom_config_presets.pop(RESERVED_PRESET_NAME, None)
+    custom_config_presets = strip_reserved_preset(custom_config_presets)
     return img2img_config_presets, custom_config_presets
 
 
@@ -1225,7 +1222,7 @@ class Script(scripts.Script):
 
                         删除选中的自定义预设；内建预设与保留项不可删除。
                         """
-                        if config_preset_name == RESERVED_PRESET_NAME:
+                        if is_reserved_preset_name(config_preset_name):
                             log(f"The '{RESERVED_PRESET_NAME}' preset is reserved and can not be deleted")
                             return gr.Dropdown.update()
 
