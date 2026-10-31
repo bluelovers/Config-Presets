@@ -1,16 +1,15 @@
 # Import necessary modules for Stable Diffusion Web UI extension
 # 导入Stable Diffusion Web UI扩展所需的模块
-import traceback
 import os
 from typing import Any
 import modules.scripts as scripts  # pyright: ignore[reportMissingImports]
 import gradio as gr  # pyright: ignore[reportMissingImports]
 
-from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImports]
 from modules import shared, script_callbacks  # pyright: ignore[reportMissingImports]
-from sd_config_presets.config_components import dict_synonyms, load_custom_tracked_component_ids, EnumTypeName, log, log_error, log_critical_error, write_json_to_file, RESERVED_PRESET_NAME, is_reserved_preset_name
+from sd_config_presets.config_components import load_custom_tracked_component_ids, EnumTypeName, log, log_error
 from sd_config_presets.config_file.preset_loaders import load_txt2img_config_file, load_img2img_config_file, build_config_presets
-from sd_config_presets.sd_components import createOpenFileInSystemAppButton, save_config, get_config_preset_dropdown_choices
+from sd_config_presets.component_tracker import ComponentTracker
+from sd_config_presets.preset_ui import ConfigPresetUI
 
 # Base directory path for the Config-Presets extension
 # Contains the full path to the extension folder
@@ -807,15 +806,23 @@ class Script(scripts.Script):
             ("script_img2img_adetailer_ad_enable", "script_img2img_adetailer_ad_main_accordion-checkbox"),
         ]
 
-        # Mapping between component labels and the actual components in ui.py
-        # 组件标签与ui.py中实际组件之间的映射
-        self.txt2img_component_map: dict[str, Any] = {k: None for k in self.txt2img_component_ids}  # gets filled up in the after_component() method
-        self.img2img_component_map: dict[str, Any] = {k: None for k in self.img2img_component_ids}  # gets filled up in the after_component() method
-
-        # X/Y/Z plot 的 values 多選下拉框 (multiselect dropdown) 沒有 elem_id，無法以 ID 追蹤；
-        # 於 after_component 以前一個建立的 "*_values" textbox 為錨點自動捕獲
-        self.pending_xyz_dropdown_base_id: str | None = None
-        self.pending_xyz_dropdown_label: str | None = None
+        # 元件偵測層：component_map 與 X/Y/Z plot 下拉框錨點狀態由 ComponentTracker 管理，
+        # 於 after_component() 依序登記 WebUI 建立的元件
+        # (gets filled up in the after_component() method)
+        self.txt2img_component_tracker = ComponentTracker(
+            type_name=EnumTypeName.txt2img,
+            component_ids=self.txt2img_component_ids,
+            optional_ids=self.txt2img_optional_ids,
+            synonym_ids=self.synonym_ids,
+            custom_tracked_components_config_file_name=CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME,
+        )
+        self.img2img_component_tracker = ComponentTracker(
+            type_name=EnumTypeName.img2img,
+            component_ids=self.img2img_component_ids,
+            optional_ids=self.img2img_optional_ids,
+            synonym_ids=self.synonym_ids,
+            custom_tracked_components_config_file_name=CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME,
+        )
 
         # 載入 txt2img/img2img 的內建預設與自訂預設（兩者脫鉤）
         (self.txt2img_default_config_presets, self.txt2img_custom_config_presets) = load_txt2img_config_file(CONFIG_TXT2IMG_FILE_NAME)
@@ -846,6 +853,10 @@ class Script(scripts.Script):
         Called after each UI component is created.
         This is where we build our preset management UI and hook into existing components.
 
+        职责分为两层：
+        - 侦测层 (ComponentTracker)：基于 component 的属性登记追踪元件，触发元件出现时解析出UI 所需资料
+        - 显示层 (ConfigPresetUI)：以解析结果建立 Config Presets 的 Gradio 介面
+
         在每个UI组件创建后调用。
         这里我们构建预设管理UI并连接到现有组件。
         """
@@ -853,402 +864,44 @@ class Script(scripts.Script):
         # so we can use the same code for both tabs
         # 为了通用化代码，检测我们是在txt2img标签页还是img2img标签页，然后使用相应的self变量
         # 这样我们可以为两个标签页使用相同的代码
-        component_map: dict[str, Any] = None  # pyright: ignore[reportAssignmentType]
-        component_ids: list[str] = None  # pyright: ignore[reportAssignmentType]
-        config_file_name = None
-        custom_tracked_components_config_file_name = None
-        optional_ids = None
-        synonym_ids = self.synonym_ids
-        type_name: str = None  # pyright: ignore[reportAssignmentType]
+        tracker = self.txt2img_component_tracker if self.is_txt2img else self.img2img_component_tracker
+
+        # 偵測層：登記目前元件；觸發元件（圖庫最底部的 generation info 按鈕）出現時才繼續建立 UI
+        #if component.elem_id == "txt2img_generation_info_button" or component.elem_id == "img2img_generation_info_button": #very bottom of the txt2img/img2img image gallery
+        #txt2img/img2img图片库的最底部
+        if not tracker.register_component(component):
+            return
+
+        # 偵測層解析：剔除缺失的可選元件；必備元件缺失時記錄錯誤並放棄建立 UI（防止None类型组件导致UI崩溃）
+        resolved = tracker.resolve()
+        if resolved is None:
+            return
+
         if self.is_txt2img:
-            component_map = self.txt2img_component_map
-            component_ids = self.txt2img_component_ids
+            config_presets = self.txt2img_config_presets
+            custom_config_presets = self.txt2img_custom_config_presets
+            default_config_presets = self.txt2img_default_config_presets
             config_file_name = CONFIG_TXT2IMG_FILE_NAME
             custom_tracked_components_config_file_name = CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME
-            optional_ids = self.txt2img_optional_ids
-            type_name = EnumTypeName.txt2img.value
         else:
-            component_map = self.img2img_component_map
-            component_ids = self.img2img_component_ids
+            config_presets = self.img2img_config_presets
+            custom_config_presets = self.img2img_custom_config_presets
+            default_config_presets = self.img2img_default_config_presets
             config_file_name = CONFIG_IMG2IMG_FILE_NAME
             custom_tracked_components_config_file_name = CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME
-            optional_ids = self.img2img_optional_ids
-            type_name = EnumTypeName.img2img.value
 
-        # X/Y/Z plot 的 values 多選下拉框緊鄰在其 "*_values" textbox 之後建立（見 xyz_grid.py）；
-        # 以前一個元件為錨點捕獲，並以 multiselect 與 label 特徵驗證，驗證失敗即放棄（維持原有行為）
-        if self.pending_xyz_dropdown_base_id is not None:
-            if getattr(component, "multiselect", False) is True and getattr(component, "label", None) == self.pending_xyz_dropdown_label:
-                dropdown_component_id = f"{self.pending_xyz_dropdown_base_id}_dropdown"
-                component_map[dropdown_component_id] = component     # 重建 UI 時覆蓋為新元件
-                if dropdown_component_id not in component_ids:
-                    component_ids.append(dropdown_component_id)      # 自動納入追蹤，無需使用者設定
-            self.pending_xyz_dropdown_base_id = None
-            self.pending_xyz_dropdown_label = None
-
-        #if component.label in self.component_map:
-        if component.elem_id in component_map:
-            component_map[component.elem_id] = component
-            #log_debug(f"found component: {component.elem_id} {component}")
-            if component.elem_id.endswith("_values") and "_xyz_plot_" in component.elem_id:
-                # 下一個建立的元件即為其多選下拉框，先記下錨點
-                self.pending_xyz_dropdown_base_id = component.elem_id
-                self.pending_xyz_dropdown_label = getattr(component, "label", None)
-
-        #if component.elem_id == "script_list": #bottom of the script dropdown
-        #脚本下拉菜单底部
-        #if component.elem_id == "txt2img_style2_index": #doesn't work, need to be added after all the components we edit are loaded
-        #不起作用，需要在我们要编辑的所有组件加载后添加
-        #if component.elem_id == "open_folder": #bottom of the image gallery
-        #图片库底部
-        #if component.elem_id == "txt2img_results" or component.elem_id == "img2img_results": #bottom of the image gallery, doesn't work
-        #图片库底部，不起作用
-        #if component.elem_id == "txt2img_gallery_container" or component.elem_id == "img2img_gallery_container": #bottom of the image gallery, doesn't work
-        #图片库底部，不起作用
-        if component.elem_id == "txt2img_generation_info_button" or component.elem_id == "img2img_generation_info_button": #very bottom of the txt2img/img2img image gallery
-            #txt2img/img2img图片库的最底部
-
-            #log_debug("Creating dropdown values...")
-            #log_debug("key/value pairs in component_map:")
-
-            # before we create the dropdown, we need to check if each component was found successfully to prevent errors from bricking the Web UI
-            component_map = {k:v for k,v in component_map.items() if v is not None or k not in optional_ids}    # Cleanse missing optional components with optional_ids
-            component_ids = [k for k in component_ids if k in component_map]
-
-            # protect against None type components to prevent bricking the UI
-            # this check needs to happen after optional_ids are accounted for
-            # 防止None类型组件导致UI崩溃
-            # 此检查需要在考虑optional_ids后进行
-            for component_name, component in component_map.items():
-                if component is None:
-                    log_error(f"The {type_name} component '{component_name}' could not be processed. This may be because you are running an outdated version of the Config-Presets extension, you included a component ID in the custom tracked components config file that does not exist, it no longer exists (if you updated an extension or Automatic1111), or is an invalid component (if this is the case, you need to manually edit the config file at {custom_tracked_components_config_file_name} or just delete it so it resets to defaults). This extension will not work until this issue is resolved.")
-                    return
-
-            # Mark components with type "index" to be transformed
-            # 标记类型为"index"的组件以进行转换
-            index_type_components = []
-            for component in component_map.values():
-                #log_debug(component)
-                if getattr(component, "type", "No type attr") == "index":
-                    # log_debug(component.elem_id)
-                    index_type_components.append(component.elem_id)
-
-            preset_values: list[str] = []
-            config_presets: dict[str, Any] = None  # pyright: ignore[reportAssignmentType]          # 顯示用集合（內建＋自訂）
-            custom_config_presets: dict[str, Any] = None  # pyright: ignore[reportAssignmentType]    # 自訂專用集合（寫入設定檔）
-            if self.is_txt2img:
-                config_presets = self.txt2img_config_presets
-                custom_config_presets = self.txt2img_custom_config_presets
-            else:
-                config_presets = self.img2img_config_presets
-                custom_config_presets = self.img2img_custom_config_presets
-
-            preset_values = list(config_presets.keys())
-            # for dropdownValue in config_presets:
-            #     preset_values.append(dropdownValue)
-            #     #log(f"added \"{dropdownValue}\"")
-
-            fields_checkboxgroup_value = component_ids.copy()
-            fields_checkboxgroup = gr.CheckboxGroup(choices=component_ids,
-                                                    value=fields_checkboxgroup_value,    #check all checkboxes by default
-                                                    label="Fields to save",
-                                                    show_label=True,
-                                                    interactive=True,
-                                                    elem_id="script_config_preset_fields_to_save",
-                                                    ).unrender() #we need to define this early on so that it can be used as an input for another function
-            # 复选框组值，默认选中所有复选框
-            # 复选框组，用于选择要保存的字段
-
-            with gr.Box(elem_id=f"config_preset_wrapper_{type_name}"):
-                with gr.Row(elem_id="config_preset_dropdown_row"):
-
-                    def get_config_preset(dropdown_value):
-                        config_preset = config_presets[dropdown_value]
-                        config_preset = dict_synonyms(config_preset, synonym_ids)  # Add synonyms
-                        return config_preset
-
-                    def get_filtered_ids(config_preset):
-                        filtered_ids = [id for id in component_ids if
-                                        id in config_preset.keys()] or component_ids.copy()
-                        return filtered_ids
-
-                    def update_fields_checkboxgroup(dropdown_value):
-                        config_preset = get_config_preset(dropdown_value)
-                        filtered_ids = get_filtered_ids(config_preset)
-                        return gr.update(value=filtered_ids)
-
-                    def config_preset_dropdown_change(dropdown_value, *components_value):
-                        config_preset = get_config_preset(dropdown_value)
-                        log(f"Changed to: {dropdown_value}")
-
-                        # update component values with user preset
-                        current_components = dict(zip(component_map.keys(), components_value))
-                        #log_debug("Components before:", current_components)
-                        current_components.update(config_preset)
-
-                        # transform necessary components from index to value
-                        for component_name, component_value in current_components.items():
-                            #log_debug(component_name, component_value)
-                            if component_name in index_type_components and type(component_value) == int:
-                                    current_components[component_name] = component_map[component_name].choices[component_value]
-
-                                    # A1111 1.6.0 changed radio buttons values into tuples.
-                                    # For example, for the "img2img_mask_mode" component it changed from:
-                                    #   ['Inpaint masked', 'Inpaint not masked']
-                                    #   to
-                                    #   [('Inpaint masked', 'Inpaint masked'), ('Inpaint not masked', 'Inpaint not masked')]
-                                    # Using a type == tuple check here will ensure compatibility with the older versions.
-                                    # A1111 1.6.0将单选按钮值更改为元组。
-                                    # 例如，对于"img2img_mask_mode"组件，它从：
-                                    #   ['Inpaint masked', 'Inpaint not masked']
-                                    #   更改为
-                                    #   [('Inpaint masked', 'Inpaint masked'), ('Inpaint not masked', 'Inpaint not masked')]
-                                    # 在这里使用type == tuple检查将确保与旧版本的兼容性。
-                                    if type(current_components[component_name]) == tuple:
-                                        current_components[component_name] = current_components[component_name][0]
-
-                        #log_debug("Components after :", current_components)
-
-                        return list(current_components.values())
-
-                    config_preset_dropdown = gr.Dropdown(
-                        label="Config Presets",
-                        choices=get_config_preset_dropdown_choices(preset_values),
-                        elem_id="config_preset_txt2img_dropdown" if self.is_txt2img else "config_preset_img2img_dropdown",
-                    )
-
-                    try:
-                        components = list(component_map.values())
-                        config_preset_dropdown.change(
-                            fn=config_preset_dropdown_change,
-                            show_progress=False,
-                            inputs=[config_preset_dropdown, *components],
-                            outputs=components
-                            )
-                        config_preset_dropdown.change(
-                            fn=update_fields_checkboxgroup,
-                            show_progress=False,
-                            inputs=[config_preset_dropdown],
-                            outputs=[fields_checkboxgroup]
-                        )
-                    except AttributeError:
-                        print(traceback.format_exc())   # prints the exception stacktrace
-                        log_critical_error("The Config-Presets extension encountered a fatal error. A component required by this extension no longer exists in the Web UI. This is most likely due to the A1111 Web UI being updated. Try updating the Config-Presets extension. If that doesn't work, please post a bug report at https://github.com/Zyin055/Config-Presets/issues and delete your extensions/Config-Presets folder until an update is published.")
-
-
-                    def delete_selected_preset(config_preset_name: str):
-                        """
-                        刪除選取的自訂預設；內建預設與保留項不可刪除。
-
-                        删除选中的自定义预设；内建预设与保留项不可删除。
-                        """
-                        if is_reserved_preset_name(config_preset_name):
-                            log(f"The '{RESERVED_PRESET_NAME}' preset is reserved and can not be deleted")
-                            return gr.Dropdown.update()
-
-                        if config_preset_name in custom_config_presets:
-                            del custom_config_presets[config_preset_name]     # 僅刪除自訂來源
-                            config_presets.pop(config_preset_name, None)      # 同步移除顯示項
-                            log(f"deleted: \"{config_preset_name}\"")
-
-                            write_json_to_file(custom_config_presets, config_file_name)
-
-                            preset_keys = list(config_presets.keys())
-                            return gr.Dropdown.update(value=preset_keys[len(preset_keys)-1],
-                                                        choices=get_config_preset_dropdown_choices(preset_keys),
-                                                        )
-
-                        log(f"\"{config_preset_name}\" is a built-in preset and can not be deleted")
-                        # do nothing if no value is selected
-                        return gr.Dropdown.update()
-
-                    def refresh_dropdown_button_click():
-                        """
-                        從設定檔重新載入自訂預設，並依目前 Settings 選項重建顯示集合。
-                        """
-                        if self.is_txt2img:
-                            (_, reloaded_custom_presets) = load_txt2img_config_file(CONFIG_TXT2IMG_FILE_NAME)
-                            default_presets = self.txt2img_default_config_presets
-                        else:
-                            (_, reloaded_custom_presets) = load_img2img_config_file(CONFIG_IMG2IMG_FILE_NAME)
-                            default_presets = self.img2img_default_config_presets
-
-                        # 以原地更新維持各閉包共享的 dict 參照不變
-                        custom_config_presets.clear()
-                        custom_config_presets.update(reloaded_custom_presets)
-                        config_presets.clear()
-                        config_presets.update(build_config_presets(default_presets, custom_config_presets, keep_builtin_config_presets_enabled()))
-
-                        preset_values = list(config_presets.keys())
-                        return gr.Dropdown.update(choices=get_config_preset_dropdown_choices(preset_values))
-
-                    refresh_dropdown_button = ToolButton(
-                        value="🔄",
-                        elem_id="script_config_preset_refresh_dropdown_button",
-                        visible=False,
-                    )
-                    refresh_dropdown_button.click(
-                        fn=refresh_dropdown_button_click,
-                        inputs=[],
-                        outputs=[config_preset_dropdown],
-                    )
-
-                    trash_button = ToolButton(
-                        value="🗑️",
-                        elem_id="script_config_preset_trash_button",
-                        visible=False,
-                    )
-                    trash_button.click(
-                        fn=delete_selected_preset,
-                        inputs=[config_preset_dropdown],
-                        outputs=[config_preset_dropdown],
-                    )
-
-                    open_config_file_button = createOpenFileInSystemAppButton(
-                        btnClass=ToolButton,
-                        value="📂",
-                        tooltip="Open config file in system app",
-                        elem_id="script_config_preset_open_config_file_button",
-                        visible=False,
-                        file_path=config_file_name
-                    )
-
-                    cancel_button = ToolButton(
-                        value="\U000021A9",
-                        elem_id="script_config_preset_cancel_save_button",
-                        visible=False,
-                    )
-
-                    reapply_button = ToolButton(
-                        value="📋",
-                        elem_id="script_config_preset_reapply_button"
-                    )
-
-                    components = list(component_map.values())
-                    reapply_button.click(
-                        fn=config_preset_dropdown_change,
-                        inputs=[config_preset_dropdown, *components],
-                        show_progress=False,
-                        outputs=components,
-                    )
-                    reapply_button.click(
-                        fn=update_fields_checkboxgroup,
-                        inputs=[config_preset_dropdown],
-                        show_progress=False,
-                        outputs=[fields_checkboxgroup],
-                    )
-
-                    add_remove_button = ToolButton(
-                        value="🖌️",
-                        elem_id="script_config_preset_add_button"
-                    )
-
-                with gr.Row() as collapsable_row:
-                    collapsable_row.visible = False
-                    with gr.Column():
-                        with gr.Row():
-                            save_textbox = gr.Textbox(
-                                label="New preset name",
-                                placeholder="Ex: Low quality",
-                                max_lines=1,
-                                elem_id="script_config_preset_save_textbox",
-                            )
-                            save_button = ToolButton(
-                                value="💾",
-                                variant="primary",
-                                elem_id="script_config_preset_save_button",
-                            )
-
-                            save_button.click(
-                                fn=save_config(config_presets, custom_config_presets, component_map, config_file_name),
-                                inputs=list(
-                                    [save_textbox] + [fields_checkboxgroup] + [component_map[comp_name] for comp_name in
-                                                                                component_ids if
-                                                                                component_map[comp_name] is not None]),
-                                outputs=[config_preset_dropdown, save_textbox],
-                            )
-
-                            def update_save_textbox(dropdown_value: str):
-                                """
-                                將 Config Presets 下拉選單的選取值同步到 New preset name 文字框。
-                                """
-                                if dropdown_value is None or dropdown_value == "":
-                                    return gr.Textbox.update()
-                                return gr.Textbox.update(value=dropdown_value)
-
-                            # Config Presets 選取變更時（含儲存、刪除後的自動切換）同步 New preset name
-                            config_preset_dropdown.change(
-                                fn=update_save_textbox,
-                                show_progress=False,
-                                inputs=[config_preset_dropdown],
-                                outputs=[save_textbox],
-                            )
-
-                            def add_remove_button_click(save_textbox_text: str, config_preset_dropdown_value: str):
-                                """
-                                Handle add/remove button click event.
-                                Auto-populate textbox if empty when a preset is selected.
-
-                                处理添加/删除按钮点击事件。
-                                如果选择了预设且文本框为空，则自动填充文本框。
-                                """
-                                if save_textbox_text == "" or save_textbox_text is None:
-                                    if config_preset_dropdown_value != "" and config_preset_dropdown_value is not None:
-                                        # save textbox is empty, and we have a dropdown value selected
-                                        # auto-populate the save textbox so it's easier to overwrite existing config preset
-                                        # 保存文本框为空，并且我们选择了下拉菜单值
-                                        # 自动填充保存文本框，以便更容易覆盖现有配置预设
-                                        return gr.Textbox.update(value=config_preset_dropdown_value)
-                                return gr.Textbox.update()
-
-
-                            def expand_edit_ui():
-                                """
-                                Expand the edit UI by showing relevant buttons and hiding others.
-
-                                展开编辑UI，显示相关按钮并隐藏其他按钮。
-                                """
-                                return gr.Row.update(visible=True), gr.Button.update(visible=True), gr.Button.update(visible=False), gr.Button.update(visible=False), gr.Button.update(visible=True), gr.Button.update(visible=True), gr.Button.update(visible=True)
-
-                            def collapse_edit_ui():
-                                """
-                                Collapse the edit UI by hiding relevant buttons and showing others.
-
-                                折叠编辑UI，隐藏相关按钮并显示其他按钮。
-                                """
-                                return gr.Row.update(visible=False), gr.Button.update(visible=False), gr.Button.update(visible=True), gr.Button.update(visible=True), gr.Button.update(visible=False), gr.Button.update(visible=False), gr.Button.update(visible=False)
-
-                            add_remove_button.click(
-                                fn=add_remove_button_click,
-                                inputs=[save_textbox, config_preset_dropdown],
-                                outputs=[save_textbox],
-                            )
-                            add_remove_button.click(
-                                fn=expand_edit_ui,
-                                inputs=[],
-                                outputs=[collapsable_row, refresh_dropdown_button, reapply_button, add_remove_button, trash_button, open_config_file_button, cancel_button],
-                            )
-
-                            cancel_button.click(
-                                fn=collapse_edit_ui,
-                                inputs=[],
-                                outputs=[collapsable_row, refresh_dropdown_button, reapply_button, add_remove_button, trash_button, open_config_file_button, cancel_button],
-                            )
-
-                        with gr.Row():
-                            fields_checkboxgroup.render()
-
-                        with gr.Row():
-                            with gr.Column(scale=1):
-                                createOpenFileInSystemAppButton(
-                                    btnClass=gr.Button,
-                                    value="📂 Add custom fields...",
-                                    tooltip="Add custom fields to the custom tracked components config",
-                                    elem_id="script_config_preset_open_custom_tracked_components_config",
-                                    file_path=custom_tracked_components_config_file_name
-                                )
-                            with gr.Column(scale=2):
-                                pass
+        # 顯示層：建立 Config Presets UI（下拉選單、欄位複選框組、工具按鈕與事件處理）
+        ConfigPresetUI(
+            type_name=EnumTypeName.txt2img if self.is_txt2img else EnumTypeName.img2img,
+            resolved=resolved,
+            config_presets=config_presets,
+            custom_config_presets=custom_config_presets,
+            default_config_presets=default_config_presets,
+            synonym_ids=self.synonym_ids,
+            config_file_name=config_file_name,
+            custom_tracked_components_config_file_name=custom_tracked_components_config_file_name,
+            keep_builtin_config_presets_enabled=keep_builtin_config_presets_enabled,
+        ).build()
 
 
     def ui(self, is_img2img: bool):
