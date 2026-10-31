@@ -55,7 +55,7 @@ def save_config(config_presets: dict[str, Any], component_map: dict[str, Any], c
         if new_setting_name == "":
             # do nothing if no label entered in textbox
             # 如果在文本框中没有输入标签，则不执行任何操作
-            return gr.Dropdown.update(), ""
+            return gr.Dropdown.update(), gr.Textbox.update()
 
         new_setting_map: dict[str, Any] = {}    # dict[str, Any]    {"txt2img_steps": 10, ...}
         # 新设置映射字典 - 字符串到任意类型的映射，格式如：{"txt2img_steps": 10, ...}
@@ -122,9 +122,8 @@ def save_config(config_presets: dict[str, Any], component_map: dict[str, Any], c
         return gr.Dropdown.update(value=new_setting_name,   
                                   #choices=list(config_presets.keys()),
                                   choices=get_config_preset_dropdown_choices(config_presets.keys()),  # pyright: ignore[reportArgumentType]
-                                  ), "" # clear the 'New preset name' textbox
+                                  ), gr.Textbox.update() # 不清空 New preset name 文字框，保留剛儲存的名稱
                                   # 使用新的配置预设更新下拉菜单
-                                  # 清除"新预设名称"文本框
 
     return func
 

@@ -1294,6 +1294,22 @@ class Script(scripts.Script):
                                 outputs=[config_preset_dropdown, save_textbox],
                             )
 
+                            def update_save_textbox(dropdown_value: str):
+                                """
+                                將 Config Presets 下拉選單的選取值同步到 New preset name 文字框。
+                                """
+                                if dropdown_value is None or dropdown_value == "":
+                                    return gr.Textbox.update()
+                                return gr.Textbox.update(value=dropdown_value)
+
+                            # Config Presets 選取變更時（含儲存、刪除後的自動切換）同步 New preset name
+                            config_preset_dropdown.change(
+                                fn=update_save_textbox,
+                                show_progress=False,
+                                inputs=[config_preset_dropdown],
+                                outputs=[save_textbox],
+                            )
+
                             def add_remove_button_click(save_textbox_text: str, config_preset_dropdown_value: str):
                                 """
                                 Handle add/remove button click event.
