@@ -84,7 +84,7 @@ def load_txt2img_custom_tracked_component_items() -> list[TrackedComponentItem]:
     # 第一次运行扩展或文件被删除，所以用默认值填充
     txt2img_custom_tracked_components_default_text = f"""# Put custom {type_name} tracked component IDs here. This will allow those fields to be saved as a config preset.
 # Lines starting with a # are ignored.
-# Wrap related IDs with "##@ <label>" ... "##@" to show them inside a collapsible group in the Fields to save section.
+# Start a collapsible group with "##@ <label>"; each new "##@ <label>" or plain "##@" starts the next group.
 # Component IDs can be found in the HTML (id="..."), in modules/ui.py (elem_id="..."), or in an extensions python code. IDs like "component-5890" won't work because the number at the end will change each startup.
 # Entering an invalid component ID here will cause this extension to error and not load. Components that do not have a value associated with them, such as tabs and accordions, are not supported.
 # Note that components on the top row of the UI cannot be added here, such as "setting_sd_model_checkpoint", "setting_sd_vae", and "setting_CLIP_stop_at_last_layers".
@@ -336,7 +336,7 @@ def load_img2img_custom_tracked_component_items() -> list[TrackedComponentItem]:
     # 第一次运行扩展或文件被删除，所以用默认值填充
     img2img_custom_tracked_components_default_text = f"""# Put custom {type_name} tracked component IDs here. This will allow those fields to be saved as a config preset.
 # Lines starting with a # are ignored.
-# Wrap related IDs with "##@ <label>" ... "##@" to show them inside a collapsible group in the Fields to save section.
+# Start a collapsible group with "##@ <label>"; each new "##@ <label>" or plain "##@" starts the next group.
 # Component IDs can be found in the HTML (id="..."), in modules/ui.py (elem_id="..."), or in an extensions python code. IDs like "component-5890" won't work because the number at the end will change each startup.
 # Entering an invalid component ID here will cause this extension to error and not load. Components that do not have a value associated with them, such as tabs and accordions, are not supported.
 # Note that components on the top row of the UI cannot be added here, such as "setting_sd_model_checkpoint", "setting_sd_vae", and "setting_CLIP_stop_at_last_layers".

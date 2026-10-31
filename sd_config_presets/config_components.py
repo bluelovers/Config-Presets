@@ -73,20 +73,24 @@ def log_debug(text: str):
     print(f"[DEBUG][Config Presets] {text}")
 
 
-# 追蹤元件分組標記 (group marker)：##@ <label> 開啟分組、##@ 關閉分組，@ 的數量代表層級
+# 追蹤元件分組標記 (group marker)：##@ [名稱] 起始一個分組；@ 的數量代表層級。
+# 標籤 (label) 可省略，省略時為無名稱分組；分組內容延伸到下一個標記或檔案結尾。
+# NOTE: 這不是「關閉標籤」——只是下一個標記出現時前一組自然結束，
+# 在前後剛好有內容時看起來像成對的開合。
 TRACKED_GROUP_MARKER: str = "##@"
 
 
 @dataclass
 class TrackedComponentGroup:
     """
-    追蹤元件設定檔中 ##@ ... ##@ 區塊定義的分組 (group)。
+    追蹤元件設定檔中 ##@ 標記定義的分組 (group)。
 
-    分組會將追蹤清單切割：標記之前的元件 ID 屬根層，區塊內的屬本分組，
-    關閉標記之後的元件 ID 回到根層；分組可多層巢狀。
+    分組將追蹤清單切割：標記之前的元件 ID 屬根層，各標記起始一組、
+    內容延伸到下一個標記或檔案結尾；標記可省略名稱（無名稱分組），
+    也可多層巢狀。每多一個 @ 則多一層。
 
     Attributes:
-        label (str): 分組標題，顯示於 UI 摺疊區塊的標頭
+        label (str): 分組標題，顯示於 UI 摺疊區塊的標頭；無名稱分組為空字串
         items (list[TrackedComponentItem]): 分組內容，依序為元件 ID (str) 與巢狀分組
     """
     label: str
@@ -104,11 +108,13 @@ def _parse_tracked_component_items(file: list[str] | IO[str]) -> list[TrackedCom
     將追蹤元件解析為含 ##@ 分組標記的有序樹狀結構。
 
     分組語法 (group syntax)，每多一個 @ 則多一層：
-        ##@ <label>   開啟分組 (open a group at level 1)；##@@ <label> 為 level 2
-        ##@           關閉分組 (close a group at level 1)；##@@ 為 level 2
+        ##@ <label>   起始具名分組 (start a named group)；##@@ <label> 為 level 2
+        ##@           起始無名稱分組 (start an unnamed group)
 
-    以單一 # 開頭的行為註解 (comment)、空白行忽略；
-    標記層級不符時記錄錯誤並略過該行，檔案結尾未關閉的分組記錄錯誤後視為已關閉。
+    分組內容延伸到下一個標記或檔案結尾：同層標記出現時前一組自然結束，
+    並起始新一組——因此連續的 ##@ 各自成組、不視為同一組；沒有成對的「關閉標籤」。
+    標記之前的元件 ID 屬根層。以單一 # 開頭的行為註解 (comment)、空白行忽略；
+    標記跳層時記錄錯誤並略過該行。
 
     Args:
         file (list[str] | IO[str]): File object or list of strings to parse / 要解析的文件对象或字符串列表
@@ -118,9 +124,6 @@ def _parse_tracked_component_items(file: list[str] | IO[str]) -> list[TrackedCom
     """
     root: list[TrackedComponentItem] = []
     open_groups: list[TrackedComponentGroup] = []   # 目前開啟的分組；index 即層級 - 1
-
-    def current_items() -> list[TrackedComponentItem]:
-        return open_groups[-1].items if len(open_groups) > 0 else root
 
     for raw_line in file:
         line = raw_line.strip()
@@ -135,30 +138,26 @@ def _parse_tracked_component_items(file: list[str] | IO[str]) -> list[TrackedCom
             level = 1 + at_count
             label = rest[at_count:].strip()
 
-            if label != "":
-                # 開啟分組：層級必須緊接目前層級
-                if level != len(open_groups) + 1:
-                    log_error(f"Invalid group marker '{line}': expected level {len(open_groups) + 1} at this position, ignoring it")
-                    continue
-                group = TrackedComponentGroup(label=label, items=[])
-                current_items().append(group)
-                open_groups.append(group)
-            else:
-                # 關閉分組：關閉該層及其內層（內層未關閉時視為一併關閉）
-                if level > len(open_groups):
-                    log_error(f"Invalid group marker '{line}': no open group at level {level}, ignoring it")
-                    continue
-                del open_groups[level - 1:]
+            # 層級必須緊接目前層級（不可跳層）
+            if level > len(open_groups) + 1:
+                log_error(f"Invalid group marker '{line}': expected level {len(open_groups) + 1} at this position, ignoring it")
+                continue
+
+            # 標記起始新分組：結束此層與內層的舊分組（連續標記各自成組）
+            del open_groups[level - 1:]
+            group = TrackedComponentGroup(label=label, items=[])
+            (open_groups[-1].items if len(open_groups) > 0 else root).append(group)
+            open_groups.append(group)
             continue
 
         if line.startswith("#"):
             continue    # 註解 (comment)
 
-        current_items().append(line)
-
-    if len(open_groups) > 0:
-        labels = ", ".join(f"'{group.label}'" for group in open_groups)
-        log_error(f"Group marker(s) left unclosed at end of file: {labels}, treating them as closed")
+        # 內容歸入目前最內層分組；尚無分組時屬根層（第一個標記之前）
+        if len(open_groups) > 0:
+            open_groups[-1].items.append(line)
+        else:
+            root.append(line)
 
     return root
 

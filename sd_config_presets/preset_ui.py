@@ -251,7 +251,8 @@ class ConfigPresetUI:
         """
         建立「Fields to save」核取方塊區塊。
 
-        根層元件直接列於主 CheckboxGroup；##@ 分組以可摺疊的 gr.Accordion 呈現。
+        所有由 ##@ 切割出的區域都是可摺疊分組（gr.Accordion）：
+        第一個標記之前的根層區域（含未分組的預設欄位）為第一組，各標記分組依檔案順序其後。
         派生欄位（*_values_dropdown 等偵測層自動建立的 ID）只供機制取值，
         不是獨立的設定值選項，查派生表一律不顯示。
         """
@@ -259,26 +260,29 @@ class ConfigPresetUI:
         root_ids: list[str] = [component_id for component_id in self.component_ids
                                if component_id not in grouped_ids and component_id not in self.derived_component_id_set]
 
-        root_checkboxgroup = gr.CheckboxGroup(
-            choices=root_ids,
-            value=root_ids.copy(),    #check all checkboxes by default
-            label="Fields to save",
-            show_label=True,
-            interactive=True,
-            elem_id="script_config_preset_fields_to_save",
-        )
-        # 复选框组值，默认选中所有复选框
-        # 复选框组，用于选择要保存的字段
-        self._fields_checkbox_groups.append((root_checkboxgroup, root_ids))
+        if len(root_ids) > 0:
+            with gr.Accordion(label="Fields to save", open=True, elem_id=f"script_config_preset_fields_group_{self._fields_group_index}"):
+                self._fields_group_index += 1
+                root_checkboxgroup = gr.CheckboxGroup(
+                    choices=root_ids,
+                    value=root_ids.copy(),    #check all checkboxes by default
+                    interactive=True,
+                    show_label=False,
+                    elem_id="script_config_preset_fields_to_save",
+                )
+                # 复选框组值，默认选中所有复选框
+                # 复选框组，用于选择要保存的字段
+                self._fields_checkbox_groups.append((root_checkboxgroup, root_ids))
 
         self._render_field_groups(self.tracked_component_items)
 
     def _render_field_groups(self, items: list[TrackedComponentItem]):
         """
-        遞迴建立 ##@ 分組的摺疊區塊（可多層巢狀）。
+        遞迴建立 ##@ 分組的摺疊區塊（可多層巢狀）；標記分組預設收合。
 
         該分組下沒有任何可顯示項目（直屬或巢狀元件皆缺失）時整組略過不顯示；
         直屬項目置於本層 CheckboxGroup，巢狀分組繼續向下遞迴。
+        無名稱分組（##@ 省略標籤）同樣渲染，標頭為空。
         """
         for item in items:
             if isinstance(item, str):
@@ -313,8 +317,8 @@ class ConfigPresetUI:
         對應原 after_component() 的 UI 建構區段；在 generation info 按鈕（圖庫最底部）
         建立時呼叫，使本區塊位於所有追蹤元件之後。
 
-        依賴 CheckboxGroup 建立時機的事件（儲存輸入、欄位過濾輸出）在
-        「Fields to save」區塊完成後才註冊。
+        依賴 CheckboxGroup 建立時機的事件（儲存輸入、欄位過濾輸出）
+        在「Fields to save」區塊完成後才註冊。
         """
         #log_debug("Creating dropdown values...")
         #log_debug("key/value pairs in component_map:")
