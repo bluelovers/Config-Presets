@@ -1,4 +1,6 @@
 
+import csv
+from io import StringIO
 from typing import Any
 from sd_config_presets.config_components import log, log_error, write_json_to_file
 from modules.sd_samplers import samplers_map, samplers  # pyright: ignore[reportMissingImports]
@@ -26,6 +28,17 @@ def get_config_preset_dropdown_choices(new_config_presets: list[str]) -> list[st
         new_choices.extend(new_config_presets)
     return new_choices
 
+def list_to_csv_string(data_list: list[str]) -> str:
+    """
+    將值列表轉為單個 CSV 字串。
+
+    實作與 scripts/xyz_grid.py（X/Y/Z plot）的 list_to_csv_string 一致，
+    使從其 dropdown UI 儲存的值能經 csv_string_to_list_strip() 一致解析。
+    """
+    with StringIO() as o:
+        csv.writer(o).writerow(data_list)
+        return o.getvalue().strip()
+
 def save_config(config_presets: dict[str, Any], component_map: dict[str, Any], config_file_name_path: str):
     """
     Save the current values on the UI to a new entry in the config file
@@ -49,6 +62,9 @@ def save_config(config_presets: dict[str, Any], component_map: dict[str, Any], c
 
         #log_debug(f"component_map={component_map}")
         #log_debug(f"new_setting={new_setting}")
+
+        # 組件 ID → 目前 UI 值的映射，用於取得配對的 "{component_id}_dropdown" 元件值
+        component_value_map: dict[str, Any] = dict(zip(component_map.keys(), new_setting))
 
         for i, component_id in enumerate(component_map.keys()):
 
@@ -75,6 +91,13 @@ def save_config(config_presets: dict[str, Any], component_map: dict[str, Any], c
                         # 无法获取组件的采样器名称：{component_id}
                         # 采样器的未知数据类型：{new_value}
                 else:
+                    if new_value is None or (isinstance(new_value, str) and new_value.strip() == ""):
+                        # X/Y/Z plot 在非 csv_mode（dropdown 模式）時，實際值存於配對的 multiselect
+                        # "{component_id}_dropdown"、其 textbox 保持空白；
+                        # 沿用 xyz_grid.py 的做法，將該 dropdown 選擇儲存為 CSV 字串
+                        dropdown_value = component_value_map.get(f"{component_id}_dropdown")
+                        if isinstance(dropdown_value, list) and len(dropdown_value) > 0:
+                            new_value = list_to_csv_string(dropdown_value)
                     new_setting_map[component_id] = new_value
 
                 #log_debug(f"Saving '{component_id}' as: {new_setting_map[component_id]} ({new_value})")

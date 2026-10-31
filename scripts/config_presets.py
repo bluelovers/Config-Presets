@@ -952,6 +952,11 @@ class Script(scripts.Script):
         self.txt2img_component_map: dict[str, Any] = {k: None for k in self.txt2img_component_ids}  # gets filled up in the after_component() method
         self.img2img_component_map: dict[str, Any] = {k: None for k in self.img2img_component_ids}  # gets filled up in the after_component() method
 
+        # X/Y/Z plot 的 values 多選下拉框 (multiselect dropdown) 沒有 elem_id，無法以 ID 追蹤；
+        # 於 after_component 以前一個建立的 "*_values" textbox 為錨點自動捕獲
+        self.pending_xyz_dropdown_base_id: str | None = None
+        self.pending_xyz_dropdown_label: str | None = None
+
         # Load txt2img and img2img config files
         # 加载txt2img和img2img配置文件
         self.txt2img_config_presets: dict[str, dict[str, Any]] = load_txt2img_config_file()
@@ -1007,10 +1012,25 @@ class Script(scripts.Script):
             optional_ids = self.img2img_optional_ids
             type_name = EnumTypeName.img2img.value
 
+        # X/Y/Z plot 的 values 多選下拉框緊鄰在其 "*_values" textbox 之後建立（見 xyz_grid.py）；
+        # 以前一個元件為錨點捕獲，並以 multiselect 與 label 特徵驗證，驗證失敗即放棄（維持原有行為）
+        if self.pending_xyz_dropdown_base_id is not None:
+            if getattr(component, "multiselect", False) is True and getattr(component, "label", None) == self.pending_xyz_dropdown_label:
+                dropdown_component_id = f"{self.pending_xyz_dropdown_base_id}_dropdown"
+                component_map[dropdown_component_id] = component     # 重建 UI 時覆蓋為新元件
+                if dropdown_component_id not in component_ids:
+                    component_ids.append(dropdown_component_id)      # 自動納入追蹤，無需使用者設定
+            self.pending_xyz_dropdown_base_id = None
+            self.pending_xyz_dropdown_label = None
+
         #if component.label in self.component_map:
         if component.elem_id in component_map:
             component_map[component.elem_id] = component
             #log_debug(f"found component: {component.elem_id} {component}")
+            if component.elem_id.endswith("_values") and "_xyz_plot_" in component.elem_id:
+                # 下一個建立的元件即為其多選下拉框，先記下錨點
+                self.pending_xyz_dropdown_base_id = component.elem_id
+                self.pending_xyz_dropdown_label = getattr(component, "label", None)
 
         #if component.elem_id == "script_list": #bottom of the script dropdown
         #脚本下拉菜单底部
