@@ -1,6 +1,7 @@
 # Import necessary modules for Stable Diffusion Web UI extension
 # 导入Stable Diffusion Web UI扩展所需的模块
 import traceback
+import os
 from typing import Any
 import modules.scripts as scripts  # pyright: ignore[reportMissingImports]
 import gradio as gr  # pyright: ignore[reportMissingImports]
@@ -17,12 +18,22 @@ from sd_config_presets.sd_components import createOpenFileInSystemAppButton, sav
 # 包含扩展文件夹的完整路径
 BASEDIR: str = scripts.basedir()     #C:\path\to\Stable Diffusion\extensions\Config-Presets   needs to be set in global space to get the extra 'extensions\Config-Presets' path
 
+# 設定檔資料夾：預設為擴充功能目錄；可用 --configpresets-dir 指向其他資料夾（在 preload.py 註冊），
+# 讓多個 WebUI 安裝共享同一份自訂設定檔；路徑不存在時回退預設並記錄錯誤
+config_folder = BASEDIR
+if getattr(shared.cmd_opts, "configpresets_dir", None):
+    if os.path.exists(shared.cmd_opts.configpresets_dir):
+        config_folder = str(shared.cmd_opts.configpresets_dir)   # COMMANDLINE_ARGS: --configpresets-dir "C:/path/to/folder", setup in preload.py
+        log(f"Will load config files at: {config_folder}")
+    else:
+        log_error(f"The directory set with --configpresets-dir in COMMANDLINE_ARGS {shared.cmd_opts.configpresets_dir} does not exist, using default directory at {config_folder}")
+
 # Configuration file names for different components and modes
 # 不同组件和模式的配置文件名
-CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME = f"{BASEDIR}/config-txt2img-custom-tracked-components.txt"
-CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME = f"{BASEDIR}/config-img2img-custom-tracked-components.txt"
-CONFIG_TXT2IMG_FILE_NAME = f"{BASEDIR}/config-txt2img.json"
-CONFIG_IMG2IMG_FILE_NAME = f"{BASEDIR}/config-img2img.json"
+CONFIG_TXT2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME = f"{config_folder}/config-txt2img-custom-tracked-components.txt"
+CONFIG_IMG2IMG_CUSTOM_TRACKED_COMPONENTS_FILE_NAME = f"{config_folder}/config-img2img-custom-tracked-components.txt"
+CONFIG_TXT2IMG_FILE_NAME = f"{config_folder}/config-txt2img.json"
+CONFIG_IMG2IMG_FILE_NAME = f"{config_folder}/config-img2img.json"
 
 # WebUI Settings 的 Config Presets 區段與選項鍵
 CONFIG_PRESETS_SETTINGS_SECTION = ("config_presets", "Config Presets")

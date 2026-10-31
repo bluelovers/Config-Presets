@@ -44,6 +44,9 @@ Screenshot of config-txt2img.json, which can be opened with the open config file
 <details>
     <summary>Click to view Changelog</summary>
     
+#### 10/18/2024
+* Added a new argument which an be put in webui-user.bat in COMMANDLINE_ARGS: `--configpresets-dir` to point to a different folder with Config Presets configuration files instead of using this extension's folder. Useful if you have multiple installations of A1111 and want to share your custom settings between them.
+    * Example: in webui-user.bat: `set COMMANDLINE_ARGS= --configpresets-dir "C:\path\to\Config Presets config files"`
 #### 8/15/2024
 * Support for Forge's Distilled CFG (txt2img_distilled_cfg_scale) for Flux models
 * Added new presets for Flux Dev/Schnell, tweaked existing presets
