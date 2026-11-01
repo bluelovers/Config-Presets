@@ -74,8 +74,8 @@ class ConfigPresetUI:
         self.keep_builtin_config_presets_enabled = keep_builtin_config_presets_enabled
         self.tracked_component_items = tracked_component_items
 
-        # build() 時依序收錄「Fields to save」的 CheckboxGroup 與其涵蓋的元件 ID：
-        # [0] 為第一組，其後為 ##@ 分組（含巢狀），供事件輸出與欄位過濾使用
+        # build() 時依渲染順序收錄「Fields to save」的 CheckboxGroup 與其涵蓋的元件 ID（含巢狀分組），
+        # 供事件輸出與欄位過濾使用
         self._fields_checkbox_groups: list[tuple[gr.CheckboxGroup, list[str]]] = []
         self._fields_group_index: int = 0
 
@@ -97,7 +97,7 @@ class ConfigPresetUI:
 
     def update_fields_checkboxgroups(self, dropdown_value: str):
         """
-        依選取預設包含的欄位，依序更新所有「Fields to save」CheckboxGroup（第一組＋##@ 分組）。
+        依選取預設包含的欄位，依序更新所有「Fields to save」CheckboxGroup。
         """
         config_preset = self.get_config_preset(dropdown_value)
         filtered_ids = set(self.get_filtered_ids(config_preset))
@@ -239,7 +239,7 @@ class ConfigPresetUI:
     @staticmethod
     def _collect_grouped_component_ids(items: list[TrackedComponentItem]) -> set[str]:
         """
-        收集所有 ##@ 分組（含巢狀）涵蓋的元件 ID；第一組的項目不在此集合。
+        收集各分組（含巢狀）涵蓋的元件 ID。
         """
         grouped_ids: set[str] = set()
         for item in items:
@@ -279,21 +279,20 @@ class ConfigPresetUI:
         """
         建立「Fields to save」區塊。
 
-        分組由 ##@ 標記切出；未指派給任何 ##@ 分組的欄位構成第一組（依 component_ids 順序），
-        其後各 ##@ 分組依檔案順序排列。所有分組（含第一組與巢狀分組）採相同顯示邏輯：
-        標頭帶層級編號並包在 gr.Accordion 中；僅當整體只存在一個分組時，
-        省略 gr.Accordion 這額外條件，直接顯示 CheckboxGroup。
+        分組由 ##@ 標記切出；未歸屬任何分組的欄位構成清單開頭的分組（依 component_ids 順序），
+        其餘分組依檔案順序排列。所有分組標頭帶層級編號並包在 gr.Accordion 中；
+        僅當整體只存在一個分組時，省略 gr.Accordion 這額外條件，直接顯示 CheckboxGroup。
         """
         grouped_ids = self._collect_grouped_component_ids(self.tracked_component_items)
         first_group_ids: list[str] = [component_id for component_id in self.component_ids
                                       if component_id not in grouped_ids and component_id not in self.derived_component_id_set]
 
-        # 第一組：未指派 ##@ 分組的欄位，包成與 ##@ 分組相同的結構，共用同一渲染路徑
+        # 未歸屬任何分組的欄位取自 component_ids，構成分組清單的開頭
         groups: list[TrackedComponentItem] = list(self.tracked_component_items)
         first_group_elem_id: str | None = None
         if len(first_group_ids) > 0:
             groups = [TrackedComponentGroup(label="", items=first_group_ids), *groups]
-            # 既有 javascript tooltip 的錨點，維持掛在第一組的 CheckboxGroup 上
+            # 既有 javascript tooltip 的錨點，掛在最先建立的 CheckboxGroup 上
             first_group_elem_id = "script_config_preset_fields_to_save"
 
         group_count = self._count_renderable_groups(groups)
@@ -312,7 +311,7 @@ class ConfigPresetUI:
         show_accordion 為 False（整體只有一個分組）時省略 gr.Accordion，直接顯示分組內容；
         該分組下沒有任何可顯示項目（直屬或巢狀元件皆缺失）時整組略過不顯示；
         直屬項目置於本層 CheckboxGroup，巢狀分組以本組編號為前綴繼續向下遞迴。
-        first_group_checkboxgroup_elem_id 只套用於第一組。
+        first_group_checkboxgroup_elem_id 只套用於最先建立的分組。
         """
         group_number = 0
         for item in items:
@@ -331,7 +330,7 @@ class ConfigPresetUI:
             direct_ids: list[str] = self._filter_renderable_ids([component_id for component_id in item.items
                                                                  if isinstance(component_id, str)])
 
-            # elem_id 只屬於第一組，之後的分組不再沿用
+            # 錨點只給最先建立的分組，之後清空避免沿用
             checkboxgroup_elem_id = first_group_checkboxgroup_elem_id
             first_group_checkboxgroup_elem_id = None
 
@@ -508,7 +507,7 @@ class ConfigPresetUI:
                         with gr.Column(scale=2):
                             pass
 
-        # 「Fields to save」的各 CheckboxGroup（第一組＋##@ 分組）建立完成後才可註冊的事件
+        # 「Fields to save」的各 CheckboxGroup 建立完成後才可註冊的事件
         field_checkboxgroups = [checkboxgroup for checkboxgroup, _ in self._fields_checkbox_groups]
         tracked_components = [self.component_map[component_name] for component_name in self.component_ids if self.component_map[component_name] is not None]
 

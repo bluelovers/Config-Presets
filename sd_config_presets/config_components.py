@@ -85,7 +85,7 @@ class TrackedComponentGroup:
     """
     追蹤元件設定檔中 ##@ 標記定義的分組 (group)。
 
-    分組將追蹤清單切割：標記之前的元件 ID 屬第一組，各標記起始一組、
+    分組將追蹤清單切割：標記之前的元件 ID 未歸屬任何分組，各標記起始一組、
     內容延伸到下一個標記或檔案結尾；標記可省略名稱（無名稱分組），
     也可多層巢狀。每多一個 @ 則多一層。
 
@@ -110,10 +110,12 @@ def _parse_tracked_component_items(file: list[str] | IO[str]) -> list[TrackedCom
     分組語法 (group syntax)，每多一個 @ 則多一層：
         ##@ <label>   起始具名分組 (start a named group)；##@@ <label> 為 level 2
         ##@           起始無名稱分組 (start an unnamed group)
+        標記後緊接的 @ 一律計入層級：##@@name 即 level 2、標籤 name；
+        level 1 標籤欲以 @ 開頭時須以空白隔開（##@ @name）。
 
     分組內容延伸到下一個標記或檔案結尾：同層標記出現時前一組自然結束，
     並起始新一組——因此連續的 ##@ 各自成組、不視為同一組；沒有成對的「關閉標籤」。
-    標記之前的元件 ID 屬第一組。以單一 # 開頭的行為註解 (comment)、空白行忽略；
+    標記之前的元件 ID 未歸屬任何分組。以 # 開頭且非 ##@ 標記的行為註解 (comment)、空白行忽略；
     標記跳層時記錄錯誤並略過該行。
 
     Args:
@@ -153,7 +155,7 @@ def _parse_tracked_component_items(file: list[str] | IO[str]) -> list[TrackedCom
         if line.startswith("#"):
             continue    # 註解 (comment)
 
-        # 內容歸入目前最內層分組；尚無分組時屬第一組（第一個標記之前）
+        # 內容歸入目前最內層分組；尚未開啟分組時屬未分組項目（第一個標記之前）
         if len(open_groups) > 0:
             open_groups[-1].items.append(line)
         else:
@@ -179,40 +181,6 @@ def flatten_tracked_component_items(items: list[TrackedComponentItem]) -> list[s
         else:
             component_ids.extend(flatten_tracked_component_items(item.items))
     return component_ids
-
-
-def _parse_config_components(file: list[str] | IO[str], components_ids: list[str] = []) -> list[str]:  # pyright: ignore[reportCallInDefaultInitializer]
-    """
-    Parse configuration components from a file or list of strings.
-
-    从文件或字符串列表中解析配置组件。
-
-    This private function parses the file with group markers (##@) and flattens
-    the result to a plain component ID list. It's used internally to process
-    configuration files that define which UI components should be tracked by
-    the Config-Presets extension.
-
-    这个私有函数以分组标记（##@）解析文件后攤平为纯组件ID列表。
-    它在内部用于处理定义Config-Presets扩展应该跟踪哪些UI组件的配置文件。
-
-    Args:
-        file (list[str] | IO[str]): File object or list of strings to parse / 要解析的文件对象或字符串列表
-        components_ids (list[str], optional): Existing list of component IDs to append to.
-                                             Defaults to empty list.
-                                             要追加的现有组件ID列表，默认为空列表。
-
-    Returns:
-        list[str]: List of parsed component IDs / 解析出的组件ID列表
-
-    Note:
-        Ignores lines starting with '#' (comments) and empty lines.
-        忽略以'#'开头的行（注释）和空行。
-    """
-    if (not components_ids):
-        components_ids = []
-
-    components_ids.extend(flatten_tracked_component_items(_parse_tracked_component_items(file)))
-    return components_ids
 
 
 def load_custom_tracked_component_items(file_path: str, type_name: EnumTypeName, default_config: str) -> list[TrackedComponentItem]:
