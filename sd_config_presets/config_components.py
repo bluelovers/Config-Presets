@@ -85,7 +85,7 @@ class TrackedComponentGroup:
     """
     追蹤元件設定檔中 ##@ 標記定義的分組 (group)。
 
-    分組將追蹤清單切割：標記之前的元件 ID 屬根層，各標記起始一組、
+    分組將追蹤清單切割：標記之前的元件 ID 屬第一組，各標記起始一組、
     內容延伸到下一個標記或檔案結尾；標記可省略名稱（無名稱分組），
     也可多層巢狀。每多一個 @ 則多一層。
 
@@ -113,7 +113,7 @@ def _parse_tracked_component_items(file: list[str] | IO[str]) -> list[TrackedCom
 
     分組內容延伸到下一個標記或檔案結尾：同層標記出現時前一組自然結束，
     並起始新一組——因此連續的 ##@ 各自成組、不視為同一組；沒有成對的「關閉標籤」。
-    標記之前的元件 ID 屬根層。以單一 # 開頭的行為註解 (comment)、空白行忽略；
+    標記之前的元件 ID 屬第一組。以單一 # 開頭的行為註解 (comment)、空白行忽略；
     標記跳層時記錄錯誤並略過該行。
 
     Args:
@@ -153,7 +153,7 @@ def _parse_tracked_component_items(file: list[str] | IO[str]) -> list[TrackedCom
         if line.startswith("#"):
             continue    # 註解 (comment)
 
-        # 內容歸入目前最內層分組；尚無分組時屬根層（第一個標記之前）
+        # 內容歸入目前最內層分組；尚無分組時屬第一組（第一個標記之前）
         if len(open_groups) > 0:
             open_groups[-1].items.append(line)
         else:

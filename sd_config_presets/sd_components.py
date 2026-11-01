@@ -46,7 +46,7 @@ def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str,
     僅更新並寫入自訂預設 (custom presets)；內建預設與保留項不受影響。
 
     Args:
-        fields_group_count (int): 「Fields to save」CheckboxGroup 的數量（根層＋##@ 分組）；
+        fields_group_count (int): 「Fields to save」CheckboxGroup 的數量（第一組＋##@ 分組）；
                                   依序為函式前 N 個輸入，合併成一份待儲存欄位清單
         derived_component_owner_ids (dict): 派生元件表 {派生 ID: 擁有者 ID}（由偵測層登錄）；
                                             派生欄位不是獨立設定值，UI 不顯示，

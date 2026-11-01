@@ -75,7 +75,7 @@ class ConfigPresetUI:
         self.tracked_component_items = tracked_component_items
 
         # build() 時依序收錄「Fields to save」的 CheckboxGroup 與其涵蓋的元件 ID：
-        # [0] 為根層，其後為 ##@ 分組（含巢狀），供事件輸出與欄位過濾使用
+        # [0] 為第一組，其後為 ##@ 分組（含巢狀），供事件輸出與欄位過濾使用
         self._fields_checkbox_groups: list[tuple[gr.CheckboxGroup, list[str]]] = []
         self._fields_group_index: int = 0
 
@@ -97,7 +97,7 @@ class ConfigPresetUI:
 
     def update_fields_checkboxgroups(self, dropdown_value: str):
         """
-        依選取預設包含的欄位，依序更新所有「Fields to save」CheckboxGroup（根層＋##@ 分組）。
+        依選取預設包含的欄位，依序更新所有「Fields to save」CheckboxGroup（第一組＋##@ 分組）。
         """
         config_preset = self.get_config_preset(dropdown_value)
         filtered_ids = set(self.get_filtered_ids(config_preset))
@@ -239,7 +239,7 @@ class ConfigPresetUI:
     @staticmethod
     def _collect_grouped_component_ids(items: list[TrackedComponentItem]) -> set[str]:
         """
-        收集所有 ##@ 分組（含巢狀）涵蓋的元件 ID；根層項目不在此集合。
+        收集所有 ##@ 分組（含巢狀）涵蓋的元件 ID；第一組的項目不在此集合。
         """
         grouped_ids: set[str] = set()
         for item in items:
@@ -279,67 +279,74 @@ class ConfigPresetUI:
         """
         建立「Fields to save」區塊。
 
-        「Fields to save」是整體區塊的名稱，以 Markdown 標題呈現，不是任何分組的標籤。
-        第一個 ##@ 標記之前的根層區域（含未分組的預設欄位）為第一組，
-        與其後各 ##@ 分組（依檔案順序）採相同顯示邏輯：一律包在 gr.Accordion 中；
-        僅當整體只存在一個分組時省略 gr.Accordion 這額外條件，直接顯示 CheckboxGroup。
+        分組由 ##@ 標記切出；未指派給任何 ##@ 分組的欄位構成第一組（依 component_ids 順序），
+        其後各 ##@ 分組依檔案順序排列。所有分組（含第一組與巢狀分組）採相同顯示邏輯：
+        標頭帶層級編號並包在 gr.Accordion 中；僅當整體只存在一個分組時，
+        省略 gr.Accordion 這額外條件，直接顯示 CheckboxGroup。
         """
         grouped_ids = self._collect_grouped_component_ids(self.tracked_component_items)
-        root_ids: list[str] = [component_id for component_id in self.component_ids
-                               if component_id not in grouped_ids and component_id not in self.derived_component_id_set]
+        first_group_ids: list[str] = [component_id for component_id in self.component_ids
+                                      if component_id not in grouped_ids and component_id not in self.derived_component_id_set]
 
-        # 根層區域包成無名稱分組，與 ##@ 分組共用同一渲染路徑（第一組不做特殊顯示）
+        # 第一組：未指派 ##@ 分組的欄位，包成與 ##@ 分組相同的結構，共用同一渲染路徑
         groups: list[TrackedComponentItem] = list(self.tracked_component_items)
-        root_checkboxgroup_elem_id: str | None = None
-        if len(root_ids) > 0:
-            groups = [TrackedComponentGroup(label="", items=root_ids), *groups]
-            # 既有 javascript tooltip 的錨點，維持掛在根層 CheckboxGroup 上
-            root_checkboxgroup_elem_id = "script_config_preset_fields_to_save"
+        first_group_elem_id: str | None = None
+        if len(first_group_ids) > 0:
+            groups = [TrackedComponentGroup(label="", items=first_group_ids), *groups]
+            # 既有 javascript tooltip 的錨點，維持掛在第一組的 CheckboxGroup 上
+            first_group_elem_id = "script_config_preset_fields_to_save"
 
         group_count = self._count_renderable_groups(groups)
-        if group_count == 0:
-            return    # 沒有任何可顯示欄位時整塊不顯示
 
         gr.Markdown("### Fields to save")
         self._render_field_groups(groups,
                                   show_accordion=group_count > 1,
-                                  first_group_checkboxgroup_elem_id=root_checkboxgroup_elem_id)
+                                  first_group_checkboxgroup_elem_id=first_group_elem_id)
 
-    def _render_field_groups(self, items: list[TrackedComponentItem], show_accordion: bool, first_group_checkboxgroup_elem_id: str | None = None):
+    def _render_field_groups(self, items: list[TrackedComponentItem], show_accordion: bool, first_group_checkboxgroup_elem_id: str | None = None, parent_index: str = ""):
         """
         遞迴建立各分組的顯示（可多層巢狀）；所有分組採相同顯示邏輯。
 
+        分組標頭帶層級編號：第一層為 01、02…，巢狀為 01-01、01-02…，
+        標籤格式「<編號> - <名稱>」；無名稱分組只顯示編號，編號只計實際渲染的分組。
         show_accordion 為 False（整體只有一個分組）時省略 gr.Accordion，直接顯示分組內容；
         該分組下沒有任何可顯示項目（直屬或巢狀元件皆缺失）時整組略過不顯示；
-        直屬項目置於本層 CheckboxGroup，巢狀分組繼續向下遞迴。
-        無名稱分組（##@ 省略標籤、根層第一組）同樣渲染，標頭為空。
-        first_group_checkboxgroup_elem_id 只套用於第一個渲染的分組（根層）。
+        直屬項目置於本層 CheckboxGroup，巢狀分組以本組編號為前綴繼續向下遞迴。
+        first_group_checkboxgroup_elem_id 只套用於第一組。
         """
+        group_number = 0
         for item in items:
             if isinstance(item, str):
                 continue
 
             renderable_ids = self._filter_renderable_ids(flatten_tracked_component_items(item.items))
             if len(renderable_ids) == 0:
-                continue    # 該分組下沒有項目存在，不顯示
+                continue    # 該分組下沒有項目存在，不顯示（也不佔用編號）
+
+            # 層級編號：第一層 01、02…，巢狀 01-01…
+            group_number += 1
+            group_index = f"{group_number:02d}" if parent_index == "" else f"{parent_index}-{group_number:02d}"
+            group_label = f"{group_index} - {item.label}" if item.label else group_index
 
             direct_ids: list[str] = self._filter_renderable_ids([component_id for component_id in item.items
                                                                  if isinstance(component_id, str)])
 
-            # elem_id 只屬於根層第一組，之後的分組不再沿用
+            # elem_id 只屬於第一組，之後的分組不再沿用
             checkboxgroup_elem_id = first_group_checkboxgroup_elem_id
             first_group_checkboxgroup_elem_id = None
 
             if show_accordion:
-                with gr.Accordion(label=item.label, open=True, elem_id=f"script_config_preset_fields_group_{self._fields_group_index}"):
+                with gr.Accordion(label=group_label, open=True, elem_id=f"script_config_preset_fields_group_{self._fields_group_index}"):
                     self._fields_group_index += 1
-                    self._render_field_group_content(direct_ids, item.items, show_accordion, checkboxgroup_elem_id)
+                    self._render_field_group_content(direct_ids, item.items, show_accordion, group_index, checkboxgroup_elem_id)
             else:
-                self._render_field_group_content(direct_ids, item.items, show_accordion, checkboxgroup_elem_id)
+                self._render_field_group_content(direct_ids, item.items, show_accordion, group_index, checkboxgroup_elem_id)
 
-    def _render_field_group_content(self, direct_ids: list[str], items: list[TrackedComponentItem], show_accordion: bool, checkboxgroup_elem_id: str | None = None):
+    def _render_field_group_content(self, direct_ids: list[str], items: list[TrackedComponentItem], show_accordion: bool, group_index: str, checkboxgroup_elem_id: str | None = None):
         """
         渲染單一分組的內容：本層 CheckboxGroup（預設全選）與巢狀子分組。
+
+        group_index 為本組的層級編號，巢狀分組據此衍生 01-01 形式的編號。
         """
         if len(direct_ids) > 0:
             checkboxgroup = gr.CheckboxGroup(
@@ -351,7 +358,7 @@ class ConfigPresetUI:
             )
             self._fields_checkbox_groups.append((checkboxgroup, direct_ids))
 
-        self._render_field_groups(items, show_accordion)    # 巢狀子分組
+        self._render_field_groups(items, show_accordion, parent_index=group_index)    # 巢狀子分組
 
     def build(self):
         """
@@ -501,7 +508,7 @@ class ConfigPresetUI:
                         with gr.Column(scale=2):
                             pass
 
-        # 「Fields to save」的各 CheckboxGroup（根層＋##@ 分組）建立完成後才可註冊的事件
+        # 「Fields to save」的各 CheckboxGroup（第一組＋##@ 分組）建立完成後才可註冊的事件
         field_checkboxgroups = [checkboxgroup for checkboxgroup, _ in self._fields_checkbox_groups]
         tracked_components = [self.component_map[component_name] for component_name in self.component_ids if self.component_map[component_name] is not None]
 
