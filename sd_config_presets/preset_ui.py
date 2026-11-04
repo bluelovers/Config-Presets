@@ -284,7 +284,7 @@ class ConfigPresetUI:
         僅當整體只存在一個分組時，省略 gr.Accordion 這額外條件，直接顯示 CheckboxGroup。
         """
         grouped_ids = self._collect_grouped_component_ids(self.tracked_component_items)
-        first_group_ids: list[str] = [component_id for component_id in self.component_ids
+        first_group_ids: list[TrackedComponentItem] = [component_id for component_id in self.component_ids
                                       if component_id not in grouped_ids and component_id not in self.derived_component_id_set]
 
         # 未歸屬任何分組的欄位取自 component_ids，構成分組清單的開頭
