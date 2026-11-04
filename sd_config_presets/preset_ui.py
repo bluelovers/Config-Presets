@@ -99,7 +99,13 @@ class ConfigPresetUI:
     def update_fields_checkboxgroups(self, dropdown_value: str):
         """
         依選取預設包含的欄位，依序更新所有「Fields to save」CheckboxGroup。
+
+        選取保留預設 None（含刪除預設後歸位）時不回傳任何值變更，
+        保留使用者現有的勾選狀態。
         """
+        if is_reserved_preset_name(dropdown_value):
+            return [gr.update() for _ in self._fields_checkbox_groups]
+
         config_preset = self.get_config_preset(dropdown_value)
         filtered_ids = set(self.get_filtered_ids(config_preset))
         return [gr.update(value=[component_id for component_id in group_ids if component_id in filtered_ids])
@@ -162,7 +168,8 @@ class ConfigPresetUI:
             write_json_to_file(self.custom_config_presets, self.config_file_name)
 
             preset_keys = list(self.config_presets.keys())
-            return gr.Dropdown.update(value=preset_keys[len(preset_keys)-1],
+            # 刪除後選取歸位到保留預設 None
+            return gr.Dropdown.update(value=RESERVED_PRESET_NAME,
                                         choices=get_config_preset_dropdown_choices(preset_keys),
                                         )
 
