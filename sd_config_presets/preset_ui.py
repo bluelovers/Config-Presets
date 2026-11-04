@@ -62,9 +62,10 @@ class ConfigPresetUI:
         self.component_ids = resolved.component_ids
         self.component_id_set: set[str] = set(resolved.component_ids)
         self.index_type_components = resolved.index_type_components
-        # 派生欄位（偵測層自動建立、從屬於擁有者）：不渲染為可勾選選項，儲存時隨擁有者
+        # 派生元件（偵測層自動建立）：僅供機制取值，不列入 component_map / component_ids，
+        # 不渲染為可勾選欄位、不進設定檔；儲存時作為擁有者補值的取值來源
+        self.derived_component_map = resolved.derived_component_map
         self.derived_component_owner_ids = resolved.derived_component_owner_ids
-        self.derived_component_id_set: set[str] = set(resolved.derived_component_owner_ids)
         self.config_presets = config_presets
         self.custom_config_presets = custom_config_presets
         self.default_config_presets = default_config_presets
@@ -114,7 +115,9 @@ class ConfigPresetUI:
         # update component values with user preset
         current_components = dict(zip(self.component_map.keys(), components_value))
         #log_debug("Components before:", current_components)
-        current_components.update(config_preset)
+        # 只套用追蹤清單內的欄位：設定檔可能殘留派生 ID（*_values_dropdown）等非設定欄位，
+        # 套用會使回傳值多於輸出數量
+        current_components.update({k: v for k, v in config_preset.items() if k in self.component_map})
 
         # transform necessary components from index to value
         for component_name, component_value in current_components.items():
@@ -249,13 +252,12 @@ class ConfigPresetUI:
 
     def _filter_renderable_ids(self, component_ids: list[str]) -> list[str]:
         """
-        過濾出可顯示的元件 ID：只保留偵測得到的 ID，排除派生欄位。
+        過濾出可顯示的元件 ID：只保留偵測得到的 ID。
 
-        派生欄位（*_values_dropdown 等偵測層自動建立的 ID）只供機制取值，
-        不是獨立的設定值選項，查派生表一律不顯示。
+        派生元件不列入 component_ids（由偵測層隔離），不會出現在此清單。
         """
         return [component_id for component_id in component_ids
-                if component_id in self.component_id_set and component_id not in self.derived_component_id_set]
+                if component_id in self.component_id_set]
 
     def _count_renderable_groups(self, items: list[TrackedComponentItem]) -> int:
         """
@@ -285,7 +287,7 @@ class ConfigPresetUI:
         """
         grouped_ids = self._collect_grouped_component_ids(self.tracked_component_items)
         first_group_ids: list[TrackedComponentItem] = [component_id for component_id in self.component_ids
-                                      if component_id not in grouped_ids and component_id not in self.derived_component_id_set]
+                                      if component_id not in grouped_ids]
 
         # 未歸屬任何分組的欄位取自 component_ids，構成分組清單的開頭
         groups: list[TrackedComponentItem] = list(self.tracked_component_items)
@@ -510,10 +512,12 @@ class ConfigPresetUI:
         # 「Fields to save」的各 CheckboxGroup 建立完成後才可註冊的事件
         field_checkboxgroups = [checkboxgroup for checkboxgroup, _ in self._fields_checkbox_groups]
         tracked_components = [self.component_map[component_name] for component_name in self.component_ids if self.component_map[component_name] is not None]
+        # 派生元件置於輸入清單尾端：僅供儲存時取值補寫其擁有者，不列入 component_map/component_ids
+        derived_components = [component for component in self.derived_component_map.values() if component is not None]
 
         save_button.click(
-            fn=save_config(self.config_presets, self.custom_config_presets, self.component_map, self.config_file_name, fields_group_count=len(field_checkboxgroups), derived_component_owner_ids=self.derived_component_owner_ids),
-            inputs=list([save_textbox] + field_checkboxgroups + tracked_components),
+            fn=save_config(self.config_presets, self.custom_config_presets, self.component_map, self.config_file_name, fields_group_count=len(field_checkboxgroups), derived_component_owner_ids=self.derived_component_owner_ids, derived_component_map=self.derived_component_map),
+            inputs=list([save_textbox] + field_checkboxgroups + tracked_components + derived_components),
             outputs=[config_preset_dropdown, save_textbox],
         )
 

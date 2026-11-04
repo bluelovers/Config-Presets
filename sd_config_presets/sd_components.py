@@ -39,7 +39,7 @@ def list_to_csv_string(data_list: list[str]) -> str:
         csv.writer(o).writerow(data_list)
         return o.getvalue().strip()
 
-def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str, Any], component_map: dict[str, Any], config_file_name_path: str, fields_group_count: int = 1, derived_component_owner_ids: dict[str, str] | None = None):
+def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str, Any], component_map: dict[str, Any], config_file_name_path: str, fields_group_count: int = 1, derived_component_owner_ids: dict[str, str] | None = None, derived_component_map: dict[str, Any] | None = None):
     """
     將 UI 目前值儲存為新的預設條目。
 
@@ -49,10 +49,14 @@ def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str,
         fields_group_count (int): 「Fields to save」CheckboxGroup 的數量；
                                   依序為函式前 N 個輸入，合併成一份待儲存欄位清單
         derived_component_owner_ids (dict): 派生元件表 {派生 ID: 擁有者 ID}（由偵測層登錄）；
-                                            派生欄位不是獨立設定值，UI 不顯示，
-                                            隨擁有者一併儲存，擁有者值為空時以其值補寫
+                                            派生欄位不是獨立設定值，UI 不顯示、不進設定檔，
+                                            僅在擁有者值為空時取其值補寫
+        derived_component_map (dict): 派生元件 {派生 ID: Gradio 元件}；
+                                      輸入清單尾端依此順序傳入派生元件值，
+                                      component_map 不含派生 ID，故其值須由此分段取得
     """
     derived_component_owner_ids = derived_component_owner_ids or {}
+    derived_component_map = derived_component_map or {}
 
     # 反查表：擁有者 ID → 派生 ID（首個為準），供擁有者值為空時取派生元件值
     owner_to_derived_id: dict[str, str] = {}
@@ -87,18 +91,13 @@ def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str,
         #log_debug(f"component_map={component_map}")
         #log_debug(f"new_setting={new_setting}")
 
-        # 組件 ID → 目前 UI 值的映射，用於取得配對的 "{component_id}_dropdown" 元件值
-        component_value_map: dict[str, Any] = dict(zip(component_map.keys(), new_setting))
+        # 組件目前值依 component_map 順序置於前段，取值走 new_setting[i]
+        # 派生元件值：輸入清單尾端，依 derived_component_map 順序對應（僅供補寫擁有者取值）
+        derived_value_map: dict[str, Any] = dict(zip(derived_component_map.keys(), new_setting[len(component_map):]))
 
         for i, component_id in enumerate(component_map.keys()):
 
-            # 派生欄位（偵測層查表登錄）不是可獨立勾選的設定（UI 不顯示），
-            # 隨其擁有者一併儲存，使預設載入時兩者同步
-            owner_id = derived_component_owner_ids.get(component_id)
-            if owner_id is not None:
-                if owner_id not in fields_to_save_list:
-                    continue
-            elif component_id not in fields_to_save_list:
+            if component_id not in fields_to_save_list:
                 #log(f"New preset '{new_setting_name}' will not include {component_id}")
                 # log(f"新预设'{new_setting_name}'将不包含{component_id}")
                 continue
@@ -127,7 +126,7 @@ def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str,
                         # 沿用 xyz_grid.py 的做法，list 類型儲存為 CSV 字串
                         derived_id = owner_to_derived_id.get(component_id)
                         if derived_id is not None:
-                            derived_value = component_value_map.get(derived_id)
+                            derived_value = derived_value_map.get(derived_id)
                             if isinstance(derived_value, list) and len(derived_value) > 0:
                                 new_value = list_to_csv_string(derived_value)
                     new_setting_map[component_id] = new_value

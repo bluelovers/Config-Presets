@@ -48,6 +48,9 @@ class ResolvedComponents:
         component_map: 元件 ID → Gradio 元件；必備元件缺失時不會產出此結果
         component_ids: 實際追蹤到的元件 ID 順序清單，驅動 UI 輸入/輸出順序
         index_type_components: 型別為 "index" 的元件 ID，載入預設時需轉換為實際值
+        derived_component_map: 派生元件 {派生 ID: Gradio 元件}；僅供機制取值，
+                               不列入 component_map / component_ids，
+                               因此不是設定欄位、不會被儲存進設定檔
         derived_component_owner_ids: 派生元件表 {派生 ID: 擁有者 ID}；
                                      派生 ID 由機制自動建立、從屬於擁有者，
                                      不是獨立的設定欄位（顯示層不顯示、儲存隨擁有者）
@@ -56,6 +59,7 @@ class ResolvedComponents:
     component_map: dict[str, Any]
     component_ids: list[str]
     index_type_components: list[str]
+    derived_component_map: dict[str, Any]
     derived_component_owner_ids: dict[str, str]
 
 
@@ -95,6 +99,10 @@ class ComponentTracker:
         # 組件標籤與 ui.py 中實際組件之間的映射，於 register_component() 依序填入
         self.component_map: dict[str, Any] = {k: None for k in self.component_ids}
 
+        # 派生元件表 {派生 ID: Gradio 元件}：機制自動建立、僅供取值使用的元件本體。
+        # 與 component_map / component_ids 完全隔離，不進設定檔、不參與 UI 輸入/輸出順序
+        self.derived_component_map: dict[str, Any] = {}
+
         # 派生元件表 {派生 ID: 擁有者 ID}：機制自動建立、從屬於擁有者的追蹤 ID。
         # 不是獨立的設定欄位，由顯示層與儲存層查表區分（未來機制一律經 track_derived_component 登錄）
         self.derived_component_owner_ids: dict[str, str] = {}
@@ -108,19 +116,18 @@ class ComponentTracker:
         """
         登記派生元件：自動建立、僅供機制內部取值使用，不作為獨立設定欄位。
 
-        派生 ID 納入 component_map / component_ids 正常追蹤（作為事件輸入），
-        同時登錄派生表；顯示層不將其渲染為可勾選欄位，
-        儲存層使其隨擁有者一併進出預設。未來的自動捕獲機制（不只 X/Y/Z plot）
-        都應經由此表登錄，避免與獨立設定值混淆。
+        派生元件只收進派生表（derived_component_map / derived_component_owner_ids），
+        不列入 component_map / component_ids：
+        這兩個清單驅動 UI 輸入/輸出與設定檔儲存，混入派生 ID 會使其被當成獨立設定值寫入設定檔。
+        儲存時由擁有者查派生表取值補寫，本身永不進設定檔。
+        未來的自動捕獲機制（不只 X/Y/Z plot）都應經由此表登錄，避免與獨立設定值混淆。
 
         Args:
             component: WebUI 剛建立的 Gradio 元件
             derived_id: 派生 ID（如 script_*_values_dropdown）
             owner_id: 擁有者元件 ID，派生欄位從屬於它
         """
-        self.component_map[derived_id] = component     # 重建 UI 時覆蓋為新元件
-        if derived_id not in self.component_ids:
-            self.component_ids.append(derived_id)      # 自動納入追蹤，無需使用者設定
+        self.derived_component_map[derived_id] = component     # 重建 UI 時覆蓋為新元件
         self.derived_component_owner_ids[derived_id] = owner_id
 
     def is_trigger_component(self, component: Any) -> bool:
@@ -143,7 +150,7 @@ class ComponentTracker:
         # 以前一個元件為錨點捕獲，並以 multiselect 與 label 特徵驗證，驗證失敗即放棄（維持原有行為）
         if self._pending_xyz_dropdown_base_id is not None:
             if getattr(component, "multiselect", False) is True and getattr(component, "label", None) == self._pending_xyz_dropdown_label:
-                # 配對下拉框是派生欄位：隨其 "*_values" 文字框，不作為獨立設定值顯示
+                # 配對下拉框是派生元件：僅供儲存時取值，不列入追蹤清單、不進設定檔
                 self.track_derived_component(
                     component,
                     derived_id=xyz_values_dropdown_id(self._pending_xyz_dropdown_base_id),
@@ -200,5 +207,6 @@ class ComponentTracker:
             component_map=component_map,
             component_ids=component_ids,
             index_type_components=index_type_components,
+            derived_component_map=dict(self.derived_component_map),
             derived_component_owner_ids=dict(self.derived_component_owner_ids),
         )
