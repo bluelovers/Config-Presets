@@ -251,9 +251,11 @@ class ConfigPresetUI:
         """
         Expand the edit UI by showing relevant buttons and hiding others.
 
+        重套按鈕不隨展開狀態隱藏，展開與收合時皆保持可見。
+
         展开编辑UI，显示相关按钮并隐藏其他按钮。
         """
-        return gr.Row.update(visible=True), gr.Button.update(visible=True), gr.Button.update(visible=False), gr.Button.update(visible=False), gr.Button.update(visible=True), gr.Button.update(visible=True), gr.Button.update(visible=True)
+        return gr.Row.update(visible=True), gr.Button.update(visible=True), gr.Button.update(visible=True), gr.Button.update(visible=False), gr.Button.update(visible=True), gr.Button.update(visible=True), gr.Button.update(visible=True)
 
     @staticmethod
     def collapse_edit_ui():
