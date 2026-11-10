@@ -19,6 +19,7 @@ from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImp
 from sd_config_presets.component_tracker import ResolvedComponents
 from sd_config_presets.config_components import dict_synonyms, is_reserved_preset_name, log, log_critical_error, write_json_to_file, RESERVED_PRESET_NAME, EnumTypeName, flatten_tracked_component_items, TrackedComponentGroup, TrackedComponentItem  # pyright: ignore[reportMissingImports]
 from sd_config_presets.config_file.preset_loaders import load_txt2img_config_file, load_img2img_config_file, build_config_presets  # pyright: ignore[reportMissingImports]
+from sd_config_presets.compat.csv_io import split_csv_text_and_list  # pyright: ignore[reportMissingImports]
 from sd_config_presets.sd_components import createOpenFileInSystemAppButton, save_config, get_config_preset_dropdown_choices, is_xyz_plot_type_component_id, find_xyz_plot_type_match, get_xyz_plot_type_saved_label  # pyright: ignore[reportMissingImports]
 
 
@@ -111,15 +112,22 @@ class ConfigPresetUI:
         return [gr.update(value=[component_id for component_id in group_ids if component_id in filtered_ids])
                 for _, group_ids in self._fields_checkbox_groups]
 
-    def config_preset_dropdown_change(self, dropdown_value: str, *components_value):
+    def config_preset_dropdown_change(self, dropdown_value: str, *all_values):
         """
         下拉選單選取變更時，將預設值套用到各追蹤元件。
+
+        派生元件（X/Y/Z plot 的 values 多選框）接在追蹤元件之後傳入；
+        套用時文字框與多選框雙寫同一份 *_values，
+        不論產圖當下以哪一邊為準皆讀到新值。
         """
         config_preset = self.get_config_preset(dropdown_value)
         log(f"Changed to: {dropdown_value}")
 
-        # update component values with user preset
-        current_components = dict(zip(self.component_map.keys(), components_value))
+        component_count = len(self.component_map)
+        # 非 None 的派生元件，與 build() 的 inputs / outputs 順序一致
+        derived_ids: list[str] = [derived_id for derived_id, component in self.derived_component_map.items() if component is not None]
+        current_components = dict(zip(self.component_map.keys(), all_values[:component_count]))
+        current_derived = dict(zip(derived_ids, all_values[component_count:]))
         #log_debug("Components before:", current_components)
         # 只套用追蹤清單內的欄位：設定檔可能殘留派生 ID（*_values_dropdown）等非設定欄位，
         # 套用會使回傳值多於輸出數量
@@ -164,9 +172,22 @@ class ConfigPresetUI:
                     if type(current_components[component_name]) == tuple:
                         current_components[component_name] = current_components[component_name][0]
 
+        # X/Y/Z plot values：文字框保留 CSV，多選框同時寫入列表，雙寫同一份值。
+        # xyz_grid.py 下拉模式讀多選框、文字模式讀文字框，兩邊皆新值時哪一邊為準都正確。
+        # 值形態判斷（list／str／空值）由 split_csv_text_and_list
+        if len(derived_ids) > 0:
+            for derived_id, owner_id in self.derived_component_owner_ids.items():
+                if derived_id not in current_derived or owner_id not in config_preset:
+                    continue
+                textbox_value, multiselect_value = split_csv_text_and_list(current_components.get(owner_id))
+                # 擁有者不在追蹤清單時 get 回 None，不補寫鍵以免回傳值多於輸出數量
+                if owner_id in current_components:
+                    current_components[owner_id] = textbox_value
+                current_derived[derived_id] = multiselect_value
+
         #log_debug("Components after :", current_components)
 
-        return list(current_components.values())
+        return list(current_components.values()) + [current_derived[derived_id] for derived_id in derived_ids]
 
     def delete_selected_preset(self, config_preset_name: str):
         """
@@ -414,11 +435,13 @@ class ConfigPresetUI:
 
                 try:
                     components = list(self.component_map.values())
+                    derived_components_for_apply = [component for component in self.derived_component_map.values() if component is not None]
+                    apply_components = [*components, *derived_components_for_apply]
                     config_preset_dropdown.change(
                         fn=self.config_preset_dropdown_change,
                         show_progress=False,
-                        inputs=[config_preset_dropdown, *components],
-                        outputs=components
+                        inputs=[config_preset_dropdown, *apply_components],
+                        outputs=apply_components
                         )
                 except AttributeError:
                     print(traceback.format_exc())   # prints the exception stacktrace
@@ -467,11 +490,12 @@ class ConfigPresetUI:
                 )
 
                 components = list(self.component_map.values())
+                derived_components_for_apply = [component for component in self.derived_component_map.values() if component is not None]
                 reapply_button.click(
                     fn=self.config_preset_dropdown_change,
-                    inputs=[config_preset_dropdown, *components],
+                    inputs=[config_preset_dropdown, *components, *derived_components_for_apply],
                     show_progress=False,
-                    outputs=components,
+                    outputs=[*components, *derived_components_for_apply],
                 )
 
                 add_remove_button = ToolButton(

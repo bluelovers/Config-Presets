@@ -1,7 +1,6 @@
 
-import csv
-from io import StringIO
 from typing import Any
+from sd_config_presets.compat.csv_io import resolve_saved_csv_value  # pyright: ignore[reportMissingImports]
 from sd_config_presets.config_components import log, log_error, write_json_to_file, is_reserved_preset_name  # pyright: ignore[reportMissingImports]
 from modules.sd_samplers import samplers_map, samplers  # pyright: ignore[reportMissingImports]
 import gradio as gr  # pyright: ignore[reportMissingImports]
@@ -91,17 +90,6 @@ def get_config_preset_dropdown_choices(new_config_presets: list[str]) -> list[st
         new_choices.extend(new_config_presets)
     return new_choices
 
-def list_to_csv_string(data_list: list[str]) -> str:
-    """
-    將值列表轉為單個 CSV 字串。
-
-    實作與 scripts/xyz_grid.py（X/Y/Z plot）的 list_to_csv_string 一致，
-    使從其 dropdown UI 儲存的值能經 csv_string_to_list_strip() 一致解析。
-    """
-    with StringIO() as o:
-        csv.writer(o).writerow(data_list)
-        return o.getvalue().strip()
-
 def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str, Any], component_map: dict[str, Any], config_file_name_path: str, fields_group_count: int = 1, derived_component_owner_ids: dict[str, str] | None = None, derived_component_map: dict[str, Any] | None = None):
     """
     將 UI 目前值儲存為新的預設條目。
@@ -183,15 +171,11 @@ def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str,
                         # 无法获取组件的采样器名称：{component_id}
                         # 采样器的未知数据类型：{new_value}
                 else:
-                    if new_value is None or (isinstance(new_value, str) and new_value.strip() == ""):
-                        # 擁有者（如 X/Y/Z plot 的 "*_values" textbox 於 dropdown 模式）值為空時，
-                        # 取其派生元件（配對的 multiselect）之值補寫；
-                        # 沿用 xyz_grid.py 的做法，list 類型儲存為 CSV 字串
-                        derived_id = owner_to_derived_id.get(component_id)
-                        if derived_id is not None:
-                            derived_value = derived_value_map.get(derived_id)
-                            if isinstance(derived_value, list) and len(derived_value) > 0:
-                                new_value = list_to_csv_string(derived_value)
+                    # 丟先判定多選框，非空即以它儲存。雙寫後文字框可能留著舊串，
+                    # 此做法才能存到下拉模式的後改；文字模式的後改會被同一次雙寫的舊多選蓋掉。
+                    derived_id = owner_to_derived_id.get(component_id)
+                    if derived_id is not None:
+                        new_value = resolve_saved_csv_value(new_value, derived_value_map.get(derived_id))
                     new_setting_map[component_id] = new_value
 
                     # X/Y/Z plot type：額外保存選項文字，防止選項順序變更後索引套錯
@@ -220,7 +204,7 @@ def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str,
         # log(f"重启UI...") # 在_js中完成
 
         # update the dropdown with the new config preset
-        return gr.Dropdown.update(value=new_setting_name,   
+        return gr.Dropdown.update(value=new_setting_name,
                                   #choices=list(config_presets.keys()),
                                   choices=get_config_preset_dropdown_choices(config_presets.keys()),  # pyright: ignore[reportArgumentType]
                                   ), gr.Textbox.update() # 不清空 New preset name 文字框，保留剛儲存的名稱
@@ -231,9 +215,9 @@ def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str,
 def createOpenFileInSystemAppButton(value: str, elem_id: str, file_path: str, btnClass: gr.Button | ToolButton = gr.Button, tooltip: str | None = None, *args, **kwargs):
     """
     Create a button that opens a file in the system's default application.
-    
+
     创建一个在系统默认应用程序中打开文件的按钮。
-    
+
     Args:
         value (str): Button display text / 按钮显示文本
         elem_id (str): Element ID for the button / 按钮的元素ID
@@ -241,7 +225,7 @@ def createOpenFileInSystemAppButton(value: str, elem_id: str, file_path: str, bt
         btnClass (gr.Button | ToolButton): Button class to use / 要使用的按钮类
         *args: Additional positional arguments passed to btnClass / 传递给btnClass的额外位置参数
         **kwargs: Additional keyword arguments passed to btnClass / 传递给btnClass的额外关键字参数
-    
+
     Returns:
         btn: The created button instance / 创建的按钮实例
     """
