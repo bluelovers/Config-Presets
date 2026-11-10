@@ -19,7 +19,7 @@ from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImp
 from sd_config_presets.component_tracker import ResolvedComponents
 from sd_config_presets.config_components import dict_synonyms, is_reserved_preset_name, log, log_critical_error, write_json_to_file, RESERVED_PRESET_NAME, EnumTypeName, flatten_tracked_component_items, TrackedComponentGroup, TrackedComponentItem  # pyright: ignore[reportMissingImports]
 from sd_config_presets.config_file.preset_loaders import load_txt2img_config_file, load_img2img_config_file, build_config_presets  # pyright: ignore[reportMissingImports]
-from sd_config_presets.sd_components import createOpenFileInSystemAppButton, save_config, get_config_preset_dropdown_choices  # pyright: ignore[reportMissingImports]
+from sd_config_presets.sd_components import createOpenFileInSystemAppButton, save_config, get_config_preset_dropdown_choices, is_xyz_plot_type_component_id, find_xyz_plot_type_match, get_xyz_plot_type_saved_label  # pyright: ignore[reportMissingImports]
 
 
 class ConfigPresetUI:
@@ -125,11 +125,29 @@ class ConfigPresetUI:
         # 套用會使回傳值多於輸出數量
         current_components.update({k: v for k, v in config_preset.items() if k in self.component_map})
 
+        # X/Y/Z plot type：預設帶有額外文字（*[label]／*[name]）時優先以文字比對目前選項，
+        # 找不到才保留下方索引比對，防止選項順序變更後套錯
+        for component_name in list(current_components.keys()):
+            if component_name not in config_preset or not is_xyz_plot_type_component_id(component_name):
+                continue
+            saved_label = get_xyz_plot_type_saved_label(config_preset, component_name)
+            if saved_label is None:
+                continue
+            matched = find_xyz_plot_type_match(self.component_map.get(component_name), saved_label)
+            if matched is not None:
+                current_components[component_name] = matched
+
         # transform necessary components from index to value
         for component_name, component_value in current_components.items():
             #log_debug(component_name, component_value)
             if component_name in self.index_type_components and type(component_value) == int:
-                    current_components[component_name] = self.component_map[component_name].choices[component_value]
+                    component = self.component_map[component_name]
+                    choices = getattr(component, "choices", None) or []
+                    # 索引越界（選項增減後的舊預設）不進行轉換，避免 IndexError 中斷套用
+                    if not (0 <= component_value < len(choices)):
+                        log(f"Preset value {component_value} for '{component_name}' is out of range for current choices, skipping index conversion")
+                        continue
+                    current_components[component_name] = choices[component_value]
 
                     # A1111 1.6.0 changed radio buttons values into tuples.
                     # For example, for the "img2img_mask_mode" component it changed from:

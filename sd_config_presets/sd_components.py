@@ -9,6 +9,69 @@ from sd_config_presets.utils import open_file_in_system_app
 from modules.ui_components import ToolButton  # pyright: ignore[reportMissingImports]
 
 
+# X/Y/Z plot 的 type 欄位以索引 (index) 儲存，選項順序一變便會套用錯誤；
+# 另以 *[label] 額外保存當時選項文字，載入時優先以文字比對、找不到才退回索引
+# 刻意不用 *_label 形式：下劃線後綴易被誤認為實際存在的元件 ID
+XYZ_PLOT_TYPE_LABEL_SUFFIX: str = "[label]"
+XYZ_PLOT_TYPE_NAME_SUFFIX: str = "[name]"
+
+
+def is_xyz_plot_type_component_id(component_id: str) -> bool:
+    """判斷是否為 X/Y/Z plot 的 type 欄位 ID（*_xyz_plot_*_type）。"""
+    return "_xyz_plot_" in component_id and component_id.endswith("_type")
+
+
+def xyz_plot_type_label_key(component_id: str) -> str:
+    """由 type 欄位 ID 建立其額外文字存檔鍵。"""
+    return f"{component_id}{XYZ_PLOT_TYPE_LABEL_SUFFIX}"
+
+
+def _unwrap_choice_text(choice: Any) -> str | None:
+    """取單一選項的顯示文字；A1111 1.6+ 的 radio/dropdown 可能為 (顯示, 值) 元組。"""
+    if isinstance(choice, tuple):
+        if len(choice) == 0:
+            return None
+        first = choice[0]
+        return first if isinstance(first, str) else str(first)
+    return choice if isinstance(choice, str) else None
+
+
+def get_xyz_plot_type_label(component: Any, stored_value: Any) -> str | None:
+    """由目前儲存值（索引或文字）取得元件當下選項文字；找不到回傳 None 不寫入額外欄位。"""
+    choices = getattr(component, "choices", None) or []
+    if isinstance(stored_value, int) and not isinstance(stored_value, bool):
+        if 0 <= stored_value < len(choices):
+            return _unwrap_choice_text(choices[stored_value])
+        return None
+    if isinstance(stored_value, str) and stored_value != "":
+        for choice in choices:
+            text = _unwrap_choice_text(choice)
+            if text == stored_value or choice == stored_value:
+                return text if text is not None else stored_value
+    return None
+
+
+def find_xyz_plot_type_match(component: Any, label: Any) -> str | None:
+    """在元件目前選項中尋找與 label 相同的選項；找不到回傳 None 供呼叫端退回索引比對。"""
+    if not isinstance(label, str) or label == "":
+        return None
+    choices = getattr(component, "choices", None) or []
+    for choice in choices:
+        text = _unwrap_choice_text(choice)
+        if text == label or choice == label:
+            return text if text is not None else label
+    return None
+
+
+def get_xyz_plot_type_saved_label(config_preset: dict[str, Any], component_id: str) -> str | None:
+    """讀取預設內某 type 欄位的額外文字；依 [label]、[name] 順序取首個非空。"""
+    for suffix in (XYZ_PLOT_TYPE_LABEL_SUFFIX, XYZ_PLOT_TYPE_NAME_SUFFIX):
+        value = config_preset.get(f"{component_id}{suffix}")
+        if isinstance(value, str) and value != "":
+            return value
+    return None
+
+
 #def get_config_preset_dropdown_choices(new_config_presets) -> list[str]:
 def get_config_preset_dropdown_choices(new_config_presets: list[str]) -> list[str]:
     """
@@ -130,6 +193,12 @@ def save_config(config_presets: dict[str, Any], custom_config_presets: dict[str,
                             if isinstance(derived_value, list) and len(derived_value) > 0:
                                 new_value = list_to_csv_string(derived_value)
                     new_setting_map[component_id] = new_value
+
+                    # X/Y/Z plot type：額外保存選項文字，防止選項順序變更後索引套錯
+                    if is_xyz_plot_type_component_id(component_id):
+                        label = get_xyz_plot_type_label(component_map[component_id], new_value)
+                        if label is not None:
+                            new_setting_map[xyz_plot_type_label_key(component_id)] = label
 
                 #log_debug(f"Saving '{component_id}' as: {new_setting_map[component_id]} ({new_value})")
 
