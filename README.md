@@ -1,9 +1,11 @@
+> **Note:** This repository, [bluelovers/Config-Presets](https://github.com/bluelovers/Config-Presets), is an improved version of [Zyin055/Config-Presets](https://github.com/Zyin055/Config-Presets).
+
 ## What does this do?
 This [Automatic1111](https://github.com/AUTOMATIC1111/stable-diffusion-webui) extension adds a configurable dropdown to allow you to change settings in the txt2img and img2img tabs of the Web UI.
 
 This allows you to do things like swap from low quality rendering settings to high quality. Or apply hires settings that uses your favorite anime upscaler. Or set image dimensions to make a wallpaper. You can even use it to set custom script fields like XYZ plot values or ControlNet values.
 
-Works with [stable-diffusion-webui-forge](https://github.com/lllyasviel/stable-diffusion-webui-forge). Untested with [SD.Next](https://github.com/vladmandic/automatic).
+Works with [stable-diffusion-webui-forge](https://github.com/lllyasviel/stable-diffusion-webui-forge) and [sd-webui-forge-classic (neo)](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo). Untested with [SD.Next](https://github.com/vladmandic/automatic).
 
 ## Updating from A1111 1.8 to 1.9 (not 1.10)
 Note: A1111 1.10 fixes this backwards compatibility issue described below, so it's only relevant if you are using 1.9.
