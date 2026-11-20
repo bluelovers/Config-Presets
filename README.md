@@ -7,13 +7,6 @@ This allows you to do things like swap from low quality rendering settings to hi
 
 Works with [stable-diffusion-webui-forge](https://github.com/lllyasviel/stable-diffusion-webui-forge) and [sd-webui-forge-classic (neo)](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo). Untested with [SD.Next](https://github.com/vladmandic/automatic).
 
-## Updating from A1111 1.8 to 1.9 (not 1.10)
-Note: A1111 1.10 fixes this backwards compatibility issue described below, so it's only relevant if you are using 1.9.
-
-A1111 1.9.0 added a new "Schedule type" dropdown next to the "Sampling method" dropdown which splits off the scheduler from the sampler. This means that all of your config presets that have a saved sampler needs to be renamed/fixed to remove the scheduler text at the end. For example, if you have `txt2img_sampling` set to "DPM++ 2M Karras", it now needs to be set to "DPM++ 2M" with the new `txt2img_scheduler` dropdown set to "Karras". You can do this by manually editing your `config-txt2img.txt` and `config-img2img.txt` files at `/extensions/Config-Presets`, or by deleting the bad presets in the web UI and remaking them.
-
-If you get a `AssertionError: bad sampler name` this is why. You need to fix your sampler names to match the new naming convention in A1111 1.9.0.
-
 ## Screenshots
 The new dropdown in the image gallery.
 
@@ -33,7 +26,7 @@ Screenshot of config-txt2img.json, which can be opened with the open config file
 
 ## Installation
 #### Easy way
-* In your Automatic1111 Web UI, go to the Extensions tab > Install from URL > URL for extension's git repository: `https://github.com/Zyin055/Config-Presets`
+* In your Automatic1111 Web UI, go to the Extensions tab > Install from URL > URL for extension's git repository: `https://github.com/bluelovers/Config-Presets`
 * Click the Install button
 #### Manually
 * `git clone` this repo to the `extensions` folder in your Web UI installation
@@ -43,6 +36,8 @@ Screenshot of config-txt2img.json, which can be opened with the open config file
 * Unable to save multi-select fields, such as the XYZ script's checkpoint name and sampler fields
 
 ## Changelog
+New changes are documented in [CHANGELOG.md](./CHANGELOG.md).
+
 <details>
     <summary>Click to view Changelog</summary>
     
@@ -107,3 +102,10 @@ Screenshot of config-txt2img.json, which can be opened with the open config file
 #### 12/12/2022
 * Initial Release
 </details>
+
+## Updating from A1111 1.8 to 1.9 (not 1.10)
+Note: A1111 1.10 fixes this backwards compatibility issue described below, so it's only relevant if you are using 1.9.
+
+A1111 1.9.0 added a new "Schedule type" dropdown next to the "Sampling method" dropdown which splits off the scheduler from the sampler. This means that all of your config presets that have a saved sampler needs to be renamed/fixed to remove the scheduler text at the end. For example, if you have `txt2img_sampling` set to "DPM++ 2M Karras", it now needs to be set to "DPM++ 2M" with the new `txt2img_scheduler` dropdown set to "Karras". You can do this by manually editing your `config-txt2img.txt` and `config-img2img.txt` files at `/extensions/Config-Presets`, or by deleting the bad presets in the web UI and remaking them.
+
+If you get a `AssertionError: bad sampler name` this is why. You need to fix your sampler names to match the new naming convention in A1111 1.9.0.
